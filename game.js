@@ -141,7 +141,7 @@ class GameManager {
         this.transitionToPalace();
       }, 150);
     }
-    if (urlParams.get('level') === '1') {
+    if (urlParams.get('level') === '1' || urlParams.get('scene') === 'temple') {
       beginAdventure();
       if (this.intro) this.intro.finish();
       setTimeout(() => {

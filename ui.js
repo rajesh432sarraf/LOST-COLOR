@@ -603,12 +603,10 @@ class UIManager {
       `;
     }
 
-    this.setObjective('Align the 3 Guardian Statues using the stone tablet clues.');
-
     const questUl = document.querySelector('.quest-steps');
     if (questUl) {
       questUl.innerHTML = `
-        <li class="quest-step active" id="step-0">
+        <li class="quest-step" id="step-0">
           <span class="step-dot"></span>
           <span>Align the 3 Guardian Statues</span>
         </li>
@@ -632,11 +630,37 @@ class UIManager {
       this.keySlot.style.display = 'flex';
     }
 
-    if (this.questState) {
-      if (this.questState.statuesSolved) this.completeQuestStep(0);
-      if (this.questState.hasKey) this.completeQuestStep(1);
-      if (this.questState.doorUnlocked) this.completeQuestStep(2);
-      if (this.questState.gameCompleted) this.completeQuestStep(3);
+    // Refresh state dynamically from questState and inventory
+    const qs = this.questState || (window.puzzleManager ? window.puzzleManager.questState : null);
+    const inv = window.puzzleManager ? window.puzzleManager.inventory : {};
+    
+    if (qs) {
+      const p1Done = !!(qs.p1_statues || qs.statuesSolved);
+      const keyDone = !!qs.hasKey;
+      const doorDone = !!qs.doorUnlocked;
+      const crystalDone = !!(qs.gameCompleted || inv.red);
+
+      if (p1Done) this.completeQuestStep(0);
+      else if (this.questSteps && this.questSteps[0]) this.questSteps[0].classList.add('active');
+
+      if (keyDone) this.completeQuestStep(1);
+      if (doorDone) this.completeQuestStep(2);
+      if (crystalDone) this.completeQuestStep(3);
+
+      if (crystalDone) {
+        this.setObjective('🔴 Fire Crystal Secured! Return to the Royal Palace (click 🏛️ or head to South Gate) to mount it onto the Altar.');
+      } else if (doorDone) {
+        this.setObjective('Enter the Temple & Claim the Sacred Red Crystal.');
+      } else if (keyDone) {
+        this.setObjective('Use the Ancient Red Key to unlock the Temple Gates.');
+      } else if (p1Done) {
+        this.setObjective('Collect the Ancient Red Key from the center pedestal.');
+      } else {
+        this.setObjective('Align the 3 Guardian Statues using the stone tablet clues.');
+      }
+    } else {
+      if (this.questSteps && this.questSteps[0]) this.questSteps[0].classList.add('active');
+      this.setObjective('Align the 3 Guardian Statues using the stone tablet clues.');
     }
   }
 

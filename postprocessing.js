@@ -98,27 +98,30 @@ class PostProcessingManager {
         // Boost monochrome contrast
         gray = pow(gray, uContrast);
 
-        // 1. Red chrominance isolation
+        // 1. Red chrominance isolation (true saturated red, rejecting brown/tan/skin)
         float maxGreenBlue = max(texColor.g, texColor.b);
+        float minGreenBlue = min(texColor.g, texColor.b);
         float redDiff = texColor.r - maxGreenBlue;
-        float isRed = smoothstep(0.08, 0.28, redDiff);
+        float redSat = (texColor.r - minGreenBlue) / max(texColor.r, 0.001);
+        float isRed = smoothstep(0.28, 0.55, redDiff) * smoothstep(0.40, 0.72, redSat);
 
-        vec3 vibrantRed = vec3(
-          min(1.0, texColor.r * 1.45 + 0.1),
-          texColor.g * 0.15,
-          texColor.b * 0.2
+        vec3 vibrantRed = mix(
+          texColor.rgb,
+          vec3(min(1.0, texColor.r * 1.3 + 0.05), texColor.g * 0.35, texColor.b * 0.35),
+          0.45
         );
 
         // 2. Blue & Cyan chrominance isolation
-        float maxRedGreen = max(texColor.r, texColor.g * 0.95);
+        float maxRedGreen = max(texColor.r, texColor.g);
+        float minRedGreen = min(texColor.r, texColor.g);
         float blueDiff = texColor.b - maxRedGreen;
-        float isBlue = smoothstep(0.05, 0.22, blueDiff);
+        float blueSat = (texColor.b - minRedGreen) / max(texColor.b, 0.001);
+        float isBlue = smoothstep(0.20, 0.45, blueDiff) * smoothstep(0.30, 0.65, blueSat);
 
-        // Vibrant azure / cerulean sapphire
-        vec3 vibrantBlue = vec3(
-          texColor.r * 0.2,
-          min(1.0, texColor.g * 0.85 + 0.1),
-          min(1.0, texColor.b * 1.45 + 0.15)
+        vec3 vibrantBlue = mix(
+          texColor.rgb,
+          vec3(texColor.r * 0.35, min(1.0, texColor.g * 0.95 + 0.05), min(1.0, texColor.b * 1.35 + 0.1)),
+          0.45
         );
 
         // Emissive magical particles allowance (subtle luminescence near shrine even in monochrome)
@@ -148,14 +151,14 @@ class PostProcessingManager {
 
         // Apply Red Restoration
         if (effectiveRedRestoration > 0.0) {
-          vec3 redAccent = mix(finalColor, vibrantRed, isRed);
-          finalColor = mix(finalColor, redAccent, effectiveRedRestoration);
+          vec3 redAccent = mix(texColor.rgb, vibrantRed, 0.4);
+          finalColor = mix(finalColor, redAccent, isRed * effectiveRedRestoration);
         }
 
         // Apply Blue Restoration
         if (effectiveBlueRestoration > 0.0) {
-          vec3 blueAccent = mix(finalColor, vibrantBlue, isBlue);
-          finalColor = mix(finalColor, blueAccent, effectiveBlueRestoration);
+          vec3 blueAccent = mix(texColor.rgb, vibrantBlue, 0.4);
+          finalColor = mix(finalColor, blueAccent, isBlue * effectiveBlueRestoration);
         }
 
         // Effective green restoration wave
@@ -166,10 +169,18 @@ class PostProcessingManager {
 
         // Apply Green Restoration
         if (effectiveGreenRestoration > 0.0) {
-          vec3 vibrantGreen = vec3(texColor.r * 0.15, min(1.0, texColor.g * 1.5 + 0.1), texColor.b * 0.2);
-          float isGreen = smoothstep(0.05, 0.22, texColor.g - max(texColor.r, texColor.b));
-          vec3 greenAccent = mix(finalColor, vibrantGreen, isGreen);
-          finalColor = mix(finalColor, greenAccent, effectiveGreenRestoration);
+          float maxRedBlue = max(texColor.r, texColor.b);
+          float minRedBlue = min(texColor.r, texColor.b);
+          float greenDiff = texColor.g - maxRedBlue;
+          float greenSat = (texColor.g - minRedBlue) / max(texColor.g, 0.001);
+          float isGreen = smoothstep(0.18, 0.42, greenDiff) * smoothstep(0.28, 0.58, greenSat);
+          vec3 vibrantGreen = mix(
+            texColor.rgb,
+            vec3(texColor.r * 0.3, min(1.0, texColor.g * 1.35 + 0.08), texColor.b * 0.3),
+            0.45
+          );
+          vec3 greenAccent = mix(texColor.rgb, vibrantGreen, 0.4);
+          finalColor = mix(finalColor, greenAccent, isGreen * effectiveGreenRestoration);
         }
 
         // Soft cinematic vignette

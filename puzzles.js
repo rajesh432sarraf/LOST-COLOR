@@ -27,6 +27,7 @@ class PuzzleManager {
 
     this.questState = {
       p1_statues: false,
+      statuesSolved: false,
       hasKey: false,
       doorUnlocked: false,
       gameCompleted: false,
@@ -235,7 +236,9 @@ class PuzzleManager {
           : (this.forest ? this.forest.interactables : []);
 
     for (let item of items) {
-      if (item.isCollected || item.isClaimed || item.isPlaced || (item.type === 'door' && this.questState.doorUnlocked)) {
+      if (item.isCollected || item.isClaimed || item.isPlaced || 
+          (item.type === 'door' && this.questState.doorUnlocked) ||
+          (item.type === 'statue' && (this.questState.p1_statues || this.questState.statuesSolved))) {
         continue;
       }
 
@@ -244,6 +247,18 @@ class PuzzleManager {
       if (dist <= radius && dist < minDistance) {
         minDistance = dist;
         closestInteractable = item;
+      }
+    }
+
+    // Level 1 Courtyard South Portal back to Royal Palace Hub
+    if (this.currentLevel === 1 && !closestInteractable) {
+      const returnGateDist = playerPos.distanceTo(new THREE.Vector3(0, 0, 49));
+      if (returnGateDist <= 6.5) {
+        closestInteractable = {
+          type: 'palace_return',
+          position: new THREE.Vector3(0, 0, 49),
+          getPrompt: () => 'Press [E] to Return to Royal Palace Hub 🏛️'
+        };
       }
     }
 
@@ -283,6 +298,18 @@ class PuzzleManager {
 
       case 'crystal':
         this.claimRedCrystal(item);
+        break;
+
+      case 'palace_return':
+        if (window.gameManager) {
+          if (window.uiManager) {
+            window.uiManager.showNotification('🌀 Returning to Royal Palace Hub...');
+            window.uiManager.hidePrompt();
+          }
+          setTimeout(() => {
+            window.gameManager.transitionToPalace();
+          }, 250);
+        }
         break;
 
       // Level 2: Lake
@@ -375,6 +402,7 @@ class PuzzleManager {
 
     if (allCorrect) {
       this.questState.p1_statues = true;
+      this.questState.statuesSolved = true;
 
       if (window.soundSystem) {
         window.soundSystem.playGlyphStep(3, true);
@@ -457,7 +485,7 @@ class PuzzleManager {
       window.uiManager.completeQuestStep(3);
       window.uiManager.updateCrystalInventory(this.inventory, this.altarSockets);
       window.uiManager.showNotification('🔴 Fire Crystal Acquired! Return to the Palace to socket it.');
-      window.uiManager.setObjective('Return to the Palace and place the Fire Crystal into the Altar.');
+      window.uiManager.setObjective('Return to the Royal Palace (click 🏛️ or Courtyard Gate) to socket the Fire Crystal into the Altar.');
     }
   }
 
