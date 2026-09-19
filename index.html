@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color Thief: Temple of Red - 3D Adventure Puzzle Game</title>
+  <meta name="description" content="A 3D third-person adventure puzzle game level where you explore weathered stone ruins, solve ancient guardian puzzles, and recover the lost Red Crystal to restore color to the monochrome world." />
+  <meta name="theme-color" content="#0a0a0c" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <!-- WebGL Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Cinematic Letterbox Bars -->
+  <div class="letterbox top"></div>
+  <div class="letterbox bottom"></div>
+
+  <!-- HUD & UI Overlay -->
+  <div id="ui-overlay">
+    
+    <!-- Top Header & Objectives -->
+    <header class="hud-header">
+      <div>
+        <div class="title-badge">
+          <h1>COLOR THIEF <span class="red-text">TEMPLE OF RED</span></h1>
+          <div class="subtitle">Ancient Sacred Ruins · Chapter I</div>
+          <div class="hud-score" id="hud-score-display">Score: 0</div>
+        </div>
+
+        <!-- Quest / Objective Tracker -->
+        <div class="quest-tracker">
+          <div class="quest-title">
+            <span>📜</span> Objective
+          </div>
+          <div id="current-objective-text" style="color: #ffffff; font-weight: 600; font-size: 0.88rem; margin-bottom: 12px; line-height: 1.4;">
+            Align the 3 Guardian Statues using the stone tablet clues.
+          </div>
+          <ul class="quest-steps">
+            <li class="quest-step active" id="step-0">
+              <span class="step-dot"></span>
+              <span>Align the 3 Guardian Statues</span>
+            </li>
+            <li class="quest-step" id="step-1">
+              <span class="step-dot"></span>
+              <span>Collect the Ancient Red Key</span>
+            </li>
+            <li class="quest-step" id="step-2">
+              <span class="step-dot"></span>
+              <span>Use Key to Enter the Temple</span>
+            </li>
+            <li class="quest-step" id="step-3">
+              <span class="step-dot"></span>
+              <span>Claim the Sacred Red Crystal</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Top Right: Interactive Radar Mini-Map -->
+      <div class="minimap-container" id="minimap-box" title="Temple Mini-Map">
+        <div class="minimap-compass">N</div>
+        <canvas id="minimap-canvas"></canvas>
+      </div>
+    </header>
+
+    <!-- Center Reticle & Dynamic Contextual Prompt -->
+    <div class="reticle-container">
+      <div class="reticle-dot"></div>
+      <div class="interaction-prompt">
+        <span class="key-pill">E</span>
+        <span id="prompt-text">Interact</span>
+      </div>
+    </div>
+
+    <!-- Bottom HUD: Inventory & Controls -->
+    <footer class="hud-footer">
+      <div class="inventory-bar">
+        <div class="inv-slot" id="key-slot" title="Ancient Red Key">
+          <div class="inv-icon">🗝️</div>
+          <div class="inv-label">Red Key</div>
+        </div>
+      </div>
+
+      <!-- Controls Guide Bar -->
+      <div class="controls-bar">
+        <div class="control-item">
+          <span class="control-key">W A S D</span>
+          <span>Move</span>
+        </div>
+        <div class="control-item">
+          <span class="control-key">Shift</span>
+          <span>Sprint</span>
+        </div>
+        <div class="control-item">
+          <span class="control-key">Space</span>
+          <span>Jump</span>
+        </div>
+        <div class="control-item">
+          <span class="control-key">Mouse</span>
+          <span>Look</span>
+        </div>
+        <div class="control-item">
+          <span class="control-key">E</span>
+          <span>Interact</span>
+        </div>
+        <div class="control-item">
+          <span class="control-key">C</span>
+          <span>Cinematic</span>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="action-buttons">
+        <button class="btn-icon" id="btn-sound" title="Toggle Sound / Ambient Music">🔊</button>
+        <button class="btn-icon" id="btn-cine" title="Toggle Cinematic Mode">🎬</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Inspection Modal for Level 1 Stone Tablet Inscriptions -->
+  <div class="inspection-modal" id="inspection-modal">
+    <h2 class="modal-header" id="modal-title">Stone Tablet Inscription</h2>
+    <div class="modal-body" id="modal-body" style="font-style: italic; font-size: 1.15rem; line-height: 1.9; color: #f5f5f5;">
+      "The Sun watches the rising light."
+    </div>
+    <button class="modal-close-btn" id="modal-close">Close Tablet [ESC / Click]</button>
+  </div>
+
+  <!-- Ancient Pillar Clue Slate Modal (Level 2) -->
+  <div class="clue-slate-modal" id="clue-slate-modal">
+    <div class="clue-slate-frame">
+      <div class="clue-slate-icon" id="clue-slate-icon">☁️</div>
+      <h2 class="clue-slate-title" id="clue-slate-title">Cloud Pillar</h2>
+      <div class="clue-slate-divider"></div>
+      <blockquote class="clue-slate-quote" id="clue-slate-quote">
+        "Water begins its journey in the sky."
+      </blockquote>
+      <div class="clue-slate-status">
+        ✨ Clue Discovered & Saved Automatically
+      </div>
+      <button class="modal-close-btn btn-glow-blue" id="clue-slate-close">Close Tablet [ESC / Click]</button>
+    </div>
+  </div>
+
+  <!-- Red Flash Overlay for Incorrect Puzzle Attempts -->
+  <div id="red-flash-overlay"></div>
+
+  <!-- Level 1 Complete Screen -->
+  <div class="victory-screen" id="victory-screen">
+    <div class="victory-title">Level 1 Complete</div>
+    <div class="victory-subtitle">Ancient Temple Restored</div>
+    <div class="victory-card">
+      <p class="victory-message">
+        Excellent Explorer! You restored the Ancient Temple and recovered the Fire Crystal.
+      </p>
+
+      <div class="victory-reward-badge">
+        <div class="reward-icon-flame">🔥</div>
+        <div class="reward-text-group">
+          <div class="reward-title">Fire Crystal Collected</div>
+          <div class="reward-score">+100 Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="victory-buttons">
+      <button class="btn-primary btn-glow-gold btn-large" id="btn-continue-level2">NEXT LEVEL ➜</button>
+    </div>
+  </div>
+
+  <!-- LEVEL 2 INTRO DASHBOARD -->
+  <div id="level2-intro-dashboard" class="dashboard-modal">
+    <div class="dashboard-card">
+      <div class="dashboard-tag">LEVEL 2</div>
+      <h1 class="dashboard-title">🌊 WATER REALM</h1>
+      <h2 class="dashboard-subtitle">The Dried Lake</h2>
+      <div class="dashboard-divider"></div>
+
+      <div class="dashboard-info-box">
+        <div class="info-row">
+          <span class="info-label">Objective:</span>
+          <span class="info-val">Restore the Water Cycle and reveal the hidden Water Crystal.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Hint:</span>
+          <span class="info-val">Nature follows a cycle. Discover the correct order of the symbols.</span>
+        </div>
+        <div class="info-row reward-highlight">
+          <span class="info-label">Reward:</span>
+          <span class="info-val">💎 Water Crystal</span>
+        </div>
+      </div>
+
+      <button class="btn-primary btn-glow-blue btn-large" id="btn-start-level2">START LEVEL</button>
+    </div>
+  </div>
+
+  <!-- LEVEL 2 COMPLETE SCREEN -->
+  <div class="victory-screen victory-screen-blue" id="level2-victory-screen">
+    <div class="victory-title victory-title-blue">LEVEL 2 COMPLETE</div>
+    <div class="victory-subtitle">The Water Cycle Restored</div>
+    <div class="victory-card victory-card-blue">
+      <p class="victory-message">
+        You restored the Water Cycle and awakened the Water Crystal.
+      </p>
+
+      <div class="victory-reward-badge victory-reward-blue">
+        <div class="reward-icon-water">💎</div>
+        <div class="reward-text-group">
+          <div class="reward-title">Water Crystal Acquired</div>
+          <div class="reward-score">+200 Score</div>
+        </div>
+      </div>
+    </div>
+    <div class="victory-buttons">
+      <button class="btn-primary btn-glow-blue btn-large" id="btn-continue-level3">CONTINUE TO LEVEL 3</button>
+    </div>
+  </div>
+
+  <!-- Mobile / Touch Controls Overlay -->
+  <div id="mobile-controls">
+    <div id="virtual-joystick-zone">
+      <div id="joystick-base">
+        <div id="joystick-knob"></div>
+      </div>
+    </div>
+    <div id="touch-action-buttons">
+      <button id="btn-touch-interact" class="touch-btn">E</button>
+      <button id="btn-touch-jump" class="touch-btn">JUMP</button>
+    </div>
+  </div>
+
+  <!-- Start / Intro Screen -->
+  <div id="start-screen">
+    <div class="start-content">
+      <h1 class="start-title">COLOR <span>THIEF</span></h1>
+      <div class="start-subtitle">Temple of Red</div>
+      <p class="start-desc">
+        The world has lost all colors and exists entirely in black and white. 
+        Decipher the three guardian statues using the stone tablet clues, 
+        claim the Ancient Red Key, unlock the temple gate, and recover the sacred Red Crystal.
+      </p>
+      <div class="start-prompt">
+        <span>⚔️ Click Anywhere to Begin Exploration</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Scripts -->
+  <script src="textures.js"></script>
+  <script src="audio.js"></script>
+  <script src="player.js"></script>
+  <script src="temple.js"></script>
+  <script src="lake.js"></script>
+  <script src="puzzles.js"></script>
+  <script src="postprocessing.js"></script>
+  <script src="ui.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
