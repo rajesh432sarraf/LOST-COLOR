@@ -178,6 +178,10 @@ class GameManager {
   // Level Transition: FADED PALACE HUB (Level 0)
   // ==========================================
   transitionToPalace() {
+    if (this.ui) {
+      this.ui.hidePrompt();
+    }
+
     // 1. Hide Level 1 Temple meshes
     if (this.templeObjects && this.templeObjects.length > 0) {
       this.templeObjects.forEach(obj => {
@@ -188,6 +192,10 @@ class GameManager {
     if (this.temple && this.temple.group) {
       this.scene.remove(this.temple.group);
       this.temple.group.visible = false;
+    }
+    if (this.temple && this.temple.keyGroup) {
+      this.scene.remove(this.temple.keyGroup);
+      this.temple.keyGroup.visible = false;
     }
 
     // 2. Hide Level 2 Lake
@@ -213,6 +221,13 @@ class GameManager {
     }
     this.currentLevel = 0;
 
+    // Atmospheric lighting & fog for Palace
+    this.scene.background = new THREE.Color(0x10131a);
+    this.scene.fog = new THREE.FogExp2(0x10131a, 0.015);
+    if (this.postProcessing) {
+      this.postProcessing.setWorldSaturation(1.0);
+    }
+
     // 5. Reposition player at south runner aisle facing North toward Altar of Elements
     if (this.player) {
       this.player.position.set(0, 0.0, 16);
@@ -223,7 +238,9 @@ class GameManager {
       this.player.cameraPitch = 0.12;
       this.player.targetRotationY = Math.PI;
       this.player.rotationY = Math.PI;
-      this.player.characterMesh.rotation.y = Math.PI;
+      if (this.player.characterMesh) {
+        this.player.characterMesh.rotation.y = Math.PI;
+      }
       this.player.root.position.copy(this.player.position);
     }
 
@@ -248,6 +265,11 @@ class GameManager {
   // Level Transition: CHAPTER I – TEMPLE OF RED
   // ==========================================
   transitionToLevel1() {
+    // 0. Hide any active prompt
+    if (this.ui) {
+      this.ui.hidePrompt();
+    }
+
     // 1. Hide Palace
     if (this.palace && this.palace.group) {
       this.scene.remove(this.palace.group);
@@ -266,13 +288,17 @@ class GameManager {
 
     // 4. Restore Temple
     if (!this.temple) {
+      const sceneBeforeTemple = [...this.scene.children];
       this.temple = new TempleLevel(this.scene);
+      this.templeObjects = this.scene.children.filter(c => !sceneBeforeTemple.includes(c));
     } else {
-      this.temple.group.visible = true;
-      if (!this.scene.children.includes(this.temple.group)) {
-        this.scene.add(this.temple.group);
+      if (this.temple.group) {
+        this.temple.group.visible = true;
+        if (!this.scene.children.includes(this.temple.group)) {
+          this.scene.add(this.temple.group);
+        }
       }
-      if (this.templeObjects) {
+      if (this.templeObjects && this.templeObjects.length > 0) {
         this.templeObjects.forEach(obj => {
           obj.visible = true;
           if (!this.scene.children.includes(obj)) {
@@ -280,8 +306,25 @@ class GameManager {
           }
         });
       }
+      if (this.temple.keyGroup && this.temple.keySpawned && !this.temple.keyCollected) {
+        this.temple.keyGroup.visible = true;
+        if (!this.scene.children.includes(this.temple.keyGroup)) {
+          this.scene.add(this.temple.keyGroup);
+        }
+      }
     }
     this.currentLevel = 1;
+
+    // Reset Scene background and fog for Level 1 atmosphere
+    this.scene.background = new THREE.Color(0x9aa0a8);
+    this.scene.fog = new THREE.FogExp2(0x9aa0a8, 0.012);
+
+    // Update Post-Processing for Level 1
+    if (this.postProcessing) {
+      this.postProcessing.setWorldSaturation(1.0);
+      const isRedClaimed = this.puzzles && (this.puzzles.inventory.red || (this.puzzles.questState && this.puzzles.questState.gameCompleted));
+      this.postProcessing.setRedRestoration(isRedClaimed ? 1.0 : 0.0);
+    }
 
     // 5. Reposition player at south courtyard (y = 0.0, z = 48) facing North
     if (this.player) {
@@ -293,7 +336,9 @@ class GameManager {
       this.player.cameraPitch = 0.14;
       this.player.targetRotationY = Math.PI;
       this.player.rotationY = Math.PI;
-      this.player.characterMesh.rotation.y = Math.PI;
+      if (this.player.characterMesh) {
+        this.player.characterMesh.rotation.y = Math.PI;
+      }
       this.player.root.position.copy(this.player.position);
     }
 
@@ -301,9 +346,8 @@ class GameManager {
       this.puzzles.setLevel1(this.temple);
     }
     if (this.ui) {
-      this.ui.currentLevel = 1;
+      this.ui.setupLevel1UI(this.temple);
       this.ui.showNotification('⚔️ Chapter I: Temple of Red');
-      this.ui.setObjective('Align the 3 Guardian Statues using the stone tablet clues.');
       if (this.puzzles) {
         this.ui.updateCrystalInventory(this.puzzles.inventory, this.puzzles.altarSockets);
       }
@@ -314,13 +358,23 @@ class GameManager {
   // Level Transition: Level 1 -> LEVEL 2 – WATER REALM
   // ==========================================
   transitionToLevel2() {
+    // 0. Hide UI prompt
+    if (this.ui) {
+      this.ui.hidePrompt();
+    }
+
     // 0. Hide Palace if present
     if (this.palace && this.palace.group) {
       this.scene.remove(this.palace.group);
       this.palace.group.visible = false;
     }
+    // Hide Forest if present
+    if (this.forest && this.forest.group) {
+      this.scene.remove(this.forest.group);
+      this.forest.group.visible = false;
+    }
 
-    // 1. Completely remove Level 1 Red Temple from scene so no Level 1 assets are visible
+    // 1. Completely remove Level 1 Red Temple from scene
     if (this.templeObjects && this.templeObjects.length > 0) {
       this.templeObjects.forEach(obj => {
         obj.visible = false;
@@ -331,10 +385,29 @@ class GameManager {
       this.scene.remove(this.temple.group);
       this.temple.group.visible = false;
     }
+    if (this.temple && this.temple.keyGroup) {
+      this.scene.remove(this.temple.keyGroup);
+      this.temple.keyGroup.visible = false;
+    }
 
-    // 2. Build Level 2: Water Realm - The Dried Lake
-    this.lake = new LakeLevel(this.scene);
+    // 2. Build or Restore Level 2: Water Realm - The Dried Lake
+    if (!this.lake) {
+      this.lake = new LakeLevel(this.scene);
+    } else {
+      this.lake.group.visible = true;
+      if (!this.scene.children.includes(this.lake.group)) {
+        this.scene.add(this.lake.group);
+      }
+      this.scene.fog = new THREE.FogExp2(0x94b4c8, 0.0065);
+      this.scene.background = new THREE.Color(0xa2bed4);
+    }
     this.currentLevel = 2;
+
+    if (this.postProcessing) {
+      this.postProcessing.setWorldSaturation(1.0);
+      const isWaterClaimed = this.puzzles && (this.puzzles.inventory.water || (this.puzzles.altarSockets && this.puzzles.altarSockets.water));
+      this.postProcessing.setBlueRestoration(isWaterClaimed ? 1.0 : 0.0);
+    }
 
     // 3. Reposition player at south stone path (y = 0.0, z = 30) facing North toward central platform
     if (this.player) {
@@ -346,7 +419,9 @@ class GameManager {
       this.player.cameraPitch = 0.14;
       this.player.targetRotationY = Math.PI;
       this.player.rotationY = Math.PI;
-      this.player.characterMesh.rotation.y = Math.PI;
+      if (this.player.characterMesh) {
+        this.player.characterMesh.rotation.y = Math.PI;
+      }
       this.player.root.position.copy(this.player.position);
     }
 
@@ -356,10 +431,13 @@ class GameManager {
     }
     if (this.ui) {
       this.ui.setupLevel2UI(this.lake);
+      if (this.puzzles) {
+        this.ui.updateCrystalInventory(this.puzzles.inventory, this.puzzles.altarSockets);
+      }
     }
 
     // 5. Display the clean full-screen LEVEL 2 INTRO DASHBOARD
-    if (this.ui) {
+    if (this.ui && (!this.puzzles || (!this.puzzles.inventory.water && !this.puzzles.altarSockets.water))) {
       this.ui.showLevel2IntroDashboard();
     }
   }
@@ -368,6 +446,11 @@ class GameManager {
   // Level Transition: Level 2 -> LEVEL 3 – FOREST OF LIFE
   // ==========================================
   transitionToLevel3() {
+    // 0. Hide UI prompt
+    if (this.ui) {
+      this.ui.hidePrompt();
+    }
+
     // 0. Hide Palace if present
     if (this.palace && this.palace.group) {
       this.scene.remove(this.palace.group);
@@ -385,6 +468,10 @@ class GameManager {
       this.scene.remove(this.temple.group);
       this.temple.group.visible = false;
     }
+    if (this.temple && this.temple.keyGroup) {
+      this.scene.remove(this.temple.keyGroup);
+      this.temple.keyGroup.visible = false;
+    }
 
     // 2. Remove Level 2 Lake from scene
     if (this.lake && this.lake.group) {
@@ -392,9 +479,24 @@ class GameManager {
       this.lake.group.visible = false;
     }
 
-    // 3. Build Level 3: Forest of Life
-    this.forest = new ForestLevel(this.scene);
+    // 3. Build or Restore Level 3: Forest of Life
+    if (!this.forest) {
+      this.forest = new ForestLevel(this.scene);
+    } else {
+      this.forest.group.visible = true;
+      if (!this.scene.children.includes(this.forest.group)) {
+        this.scene.add(this.forest.group);
+      }
+      this.scene.fog = new THREE.FogExp2(0x1a3324, 0.0085);
+      this.scene.background = new THREE.Color(0x1c3828);
+    }
     this.currentLevel = 3;
+
+    if (this.postProcessing) {
+      this.postProcessing.setWorldSaturation(1.0);
+      const isLifeClaimed = this.puzzles && (this.puzzles.inventory.life || (this.puzzles.altarSockets && this.puzzles.altarSockets.life));
+      this.postProcessing.setGreenRestoration(isLifeClaimed ? 1.0 : 0.0);
+    }
 
     // 4. Reposition player at south entry glade facing North toward Elder Tree
     if (this.player) {
@@ -406,7 +508,9 @@ class GameManager {
       this.player.cameraPitch = 0.14;
       this.player.targetRotationY = Math.PI;
       this.player.rotationY = Math.PI;
-      this.player.characterMesh.rotation.y = Math.PI;
+      if (this.player.characterMesh) {
+        this.player.characterMesh.rotation.y = Math.PI;
+      }
       this.player.root.position.copy(this.player.position);
     }
 
@@ -416,10 +520,13 @@ class GameManager {
     }
     if (this.ui) {
       this.ui.setupLevel3UI(this.forest);
+      if (this.puzzles) {
+        this.ui.updateCrystalInventory(this.puzzles.inventory, this.puzzles.altarSockets);
+      }
     }
 
     // 6. Display the clean full-screen LEVEL 3 INTRO DASHBOARD
-    if (this.ui) {
+    if (this.ui && (!this.puzzles || (!this.puzzles.inventory.life && !this.puzzles.altarSockets.life))) {
       this.ui.showLevel3IntroDashboard();
     }
   }

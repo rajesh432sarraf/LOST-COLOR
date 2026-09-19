@@ -209,6 +209,14 @@ class UIManager {
         window.location.href = window.location.pathname;
       });
     }
+
+    // Quick Palace return button from action bar
+    const btnPalaceNav = document.getElementById('btn-palace-nav');
+    if (btnPalaceNav) {
+      btnPalaceNav.addEventListener('click', () => {
+        if (window.gameManager) window.gameManager.transitionToPalace();
+      });
+    }
   }
 
   // ==========================================
@@ -579,6 +587,56 @@ class UIManager {
 
     if (this.keySlot) {
       this.keySlot.style.display = 'none';
+    }
+  }
+
+  setupLevel1UI(temple) {
+    this.temple = temple;
+    this.currentLevel = 1;
+
+    const titleBadge = document.querySelector('.title-badge');
+    if (titleBadge) {
+      titleBadge.innerHTML = `
+        <h1>COLOR THIEF <span style="color: #ff3344; text-shadow: 0 0 14px rgba(255, 51, 68, 0.85);">TEMPLE OF RED</span></h1>
+        <div class="subtitle">The Ancient Courtyard · Chapter I</div>
+        <div class="hud-score" id="hud-score-display">Score: ${this.score}</div>
+      `;
+    }
+
+    this.setObjective('Align the 3 Guardian Statues using the stone tablet clues.');
+
+    const questUl = document.querySelector('.quest-steps');
+    if (questUl) {
+      questUl.innerHTML = `
+        <li class="quest-step active" id="step-0">
+          <span class="step-dot"></span>
+          <span>Align the 3 Guardian Statues</span>
+        </li>
+        <li class="quest-step" id="step-1">
+          <span class="step-dot"></span>
+          <span>Collect the Ancient Red Key</span>
+        </li>
+        <li class="quest-step" id="step-2">
+          <span class="step-dot"></span>
+          <span>Use Key to Enter the Temple</span>
+        </li>
+        <li class="quest-step" id="step-3">
+          <span class="step-dot"></span>
+          <span>Claim the Sacred Red Crystal</span>
+        </li>
+      `;
+      this.questSteps = document.querySelectorAll('.quest-step');
+    }
+
+    if (this.keySlot) {
+      this.keySlot.style.display = 'flex';
+    }
+
+    if (this.questState) {
+      if (this.questState.statuesSolved) this.completeQuestStep(0);
+      if (this.questState.hasKey) this.completeQuestStep(1);
+      if (this.questState.doorUnlocked) this.completeQuestStep(2);
+      if (this.questState.gameCompleted) this.completeQuestStep(3);
     }
   }
 

@@ -865,6 +865,7 @@ class PuzzleManager {
     if (window.gameManager) {
       if (window.uiManager) {
         window.uiManager.showNotification(`🌀 Entering ${item.portalData.realmName}...`);
+        window.uiManager.hidePrompt();
       }
       setTimeout(() => {
         if (item.portalData.targetLevel === 1) {
