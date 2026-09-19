@@ -685,6 +685,147 @@ class SoundSystem {
     sweep.start(now);
     sweep.stop(now + 2.6);
   }
+
+  // ==========================================
+  // Cinematic Introduction Procedural Audio
+  // ==========================================
+
+  startIntroMusic() {
+    if (!this.initialized) this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    this.stopIntroMusic();
+    this.introOscs = [];
+
+    const now = this.ctx.currentTime;
+
+    // Peaceful Scene 1 Chords (C Major / F Major 7 gentle pads)
+    const freqs = [130.81, 164.81, 196.00, 246.94]; // C3, E3, G3, B3
+    freqs.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = idx % 2 === 0 ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(320 + idx * 60, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.09 / (idx + 1), now + 2.5);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.musicGain);
+
+      osc.start(now);
+      this.introOscs.push({ osc, gain });
+    });
+  }
+
+  playTheftVortexSound() {
+    if (!this.ctx || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    // Deep sub-bass plunge (Color Thief descending)
+    const sub = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    sub.type = 'sawtooth';
+    sub.frequency.setValueAtTime(140, now);
+    sub.frequency.exponentialRampToValueAtTime(28, now + 3.0);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(300, now);
+    filter.frequency.exponentialRampToValueAtTime(80, now + 3.0);
+
+    subGain.gain.setValueAtTime(0.01, now);
+    subGain.gain.linearRampToValueAtTime(0.55, now + 0.5);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
+
+    sub.connect(filter);
+    filter.connect(subGain);
+    subGain.connect(this.sfxGain);
+
+    sub.start(now);
+    sub.stop(now + 4.2);
+
+    // Muffle previous intro pad music
+    if (this.introOscs) {
+      this.introOscs.forEach(o => {
+        o.gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+      });
+    }
+  }
+
+  playHeroTheme() {
+    if (!this.ctx || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    // Melancholic emotional solo piano motif: A2 -> C3 -> E3 -> G3
+    const notes = [110, 130.81, 164.81, 196.00];
+    notes.forEach((freq, i) => {
+      const noteTime = now + i * 0.7;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      gain.gain.setValueAtTime(0.001, noteTime);
+      gain.gain.linearRampToValueAtTime(0.22, noteTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 1.8);
+
+      osc.connect(gain);
+      gain.connect(this.musicGain);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 1.9);
+    });
+  }
+
+  playCrystalVisionChimes() {
+    if (!this.ctx || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    // 3 Sacred Crystal Tones: Red (C5 523Hz), Blue (E5 659Hz), Green (G5 784Hz)
+    const crystalFreqs = [523.25, 659.25, 783.99, 1046.50];
+    crystalFreqs.forEach((freq, idx) => {
+      const chimeTime = now + idx * 0.35;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, chimeTime);
+
+      gain.gain.setValueAtTime(0.001, chimeTime);
+      gain.gain.linearRampToValueAtTime(0.25, chimeTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, chimeTime + 2.2);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(chimeTime);
+      osc.stop(chimeTime + 2.3);
+    });
+  }
+
+  stopIntroMusic() {
+    if (this.introOscs && this.ctx) {
+      const now = this.ctx.currentTime;
+      this.introOscs.forEach(o => {
+        try {
+          o.gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+          setTimeout(() => {
+            try { o.osc.stop(); } catch (e) {}
+          }, 1100);
+        } catch (e) {}
+      });
+      this.introOscs = [];
+    }
+  }
 }
 
 window.soundSystem = new SoundSystem();

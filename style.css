@@ -1355,4 +1355,222 @@ body.cinematic-active .letterbox.bottom {
   .controls-bar { display: none; }
   .title-badge h1 { font-size: 1rem; }
   .victory-title { font-size: 2rem; }
+  #intro-subtitle-box { bottom: 65px; padding: 12px 18px; }
+  #intro-subtitle-text { font-size: 0.92rem; }
+  .title-slate-heading { font-size: 2rem; letter-spacing: 4px; }
+}
+
+/* ==========================================================================
+   3D Cinematic Introduction Styles
+   ========================================================================== */
+#intro-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 35;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.6s ease;
+}
+
+#intro-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Skip Intro Button (Top Right) */
+.btn-skip-cinematic {
+  position: absolute;
+  top: 75px;
+  right: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(14, 16, 22, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 10px 20px;
+  color: #ffffff;
+  font-family: var(--font-cinzel);
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.btn-skip-cinematic:hover {
+  background: rgba(255, 51, 68, 0.25);
+  border-color: var(--accent-red);
+  box-shadow: 0 0 20px rgba(255, 51, 68, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-skip-cinematic .skip-key {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 3px 8px;
+  border-radius: 12px;
+  color: #ffb8c0;
+}
+
+/* Bottom Cinematic Subtitle Card */
+#intro-subtitle-box {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(880px, 90vw);
+  background: rgba(10, 12, 16, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 4px solid var(--accent-red);
+  border-radius: 14px;
+  padding: 18px 28px;
+  text-align: center;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  opacity: 1;
+}
+
+#intro-subtitle-box.fade-in {
+  animation: subtitle-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes subtitle-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 15px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+#intro-scene-title {
+  font-family: var(--font-cinzel);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--accent-gold);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  text-shadow: 0 0 10px rgba(229, 185, 92, 0.4);
+}
+
+#intro-subtitle-text {
+  font-family: var(--font-cinzel);
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: #f0f0f5;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* Scene 6 Epic Title Slate */
+#intro-title-slate {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.92);
+  width: min(720px, 92vw);
+  background: radial-gradient(circle at center, rgba(16, 18, 24, 0.92) 0%, rgba(6, 7, 10, 0.96) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 51, 68, 0.5);
+  box-shadow: 0 0 60px rgba(255, 51, 68, 0.3), inset 0 0 40px rgba(0, 0, 0, 0.8);
+  border-radius: 20px;
+  padding: 44px 36px;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#intro-title-slate.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.title-slate-tag {
+  display: inline-block;
+  background: rgba(255, 51, 68, 0.15);
+  border: 1px solid rgba(255, 51, 68, 0.4);
+  color: #ff5566;
+  font-family: var(--font-cinzel);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  padding: 4px 16px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.title-slate-heading {
+  font-family: var(--font-cinzel);
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.title-slate-heading span {
+  color: var(--accent-red);
+  text-shadow: 0 0 25px rgba(255, 51, 68, 0.8);
+}
+
+.title-slate-sub {
+  font-family: var(--font-cinzel);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 5px;
+  color: var(--accent-gold);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.title-slate-divider {
+  width: 140px;
+  height: 2px;
+  margin: 0 auto 18px auto;
+  background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
+}
+
+.title-slate-quote {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-style: italic;
+  color: #c0c2cc;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.title-slate-cta {
+  display: inline-block;
+  padding: 14px 34px;
+  background: linear-gradient(135deg, rgba(255, 51, 68, 0.25), rgba(255, 51, 68, 0.1));
+  border: 1px solid var(--accent-red);
+  border-radius: 30px;
+  color: #ffffff;
+  font-family: var(--font-cinzel);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  box-shadow: 0 0 30px rgba(255, 51, 68, 0.4);
+  animation: pulse-start 2s infinite;
 }

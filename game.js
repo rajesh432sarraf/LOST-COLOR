@@ -70,6 +70,33 @@ class GameManager {
     this.puzzles = new PuzzleManager(this.temple, this.player);
     window.puzzleManager = this.puzzles;
     this.ui.questState = this.puzzles.questState;
+
+    // 6. 3D Cinematic Introduction
+    this.intro = new CinematicIntro(
+      this.scene,
+      this.camera,
+      this.player,
+      this.temple,
+      this.postProcessing,
+      () => this.onIntroComplete()
+    );
+    window.cinematicIntro = this.intro;
+  }
+
+  onIntroComplete() {
+    if (this.player) {
+      this.player.cutsceneActive = false;
+      try {
+        this.renderer.domElement.requestPointerLock();
+      } catch (e) {}
+    }
+    if (this.ui) {
+      this.ui.showNotification('⚔️ Chapter I: Temple of Red');
+      this.ui.setObjective('Align the 3 Guardian Statues using the stone tablet clues.');
+    }
+    if (window.soundSystem) {
+      window.soundSystem.startAmbientSoundscape();
+    }
   }
 
   initStartScreen() {
@@ -85,14 +112,14 @@ class GameManager {
         window.soundSystem.init();
       }
 
-      // Request Pointer Lock for immersive camera control
-      try {
-        this.renderer.domElement.requestPointerLock();
-      } catch (e) {
-        console.log('Pointer lock auto-request:', e);
-      }
-
       startScreen.classList.add('hidden');
+
+      // Launch high-polish 3D Cinematic Introduction
+      if (this.intro) {
+        this.intro.start();
+      } else {
+        this.onIntroComplete();
+      }
     };
 
     startScreen.addEventListener('click', beginAdventure);
@@ -104,8 +131,12 @@ class GameManager {
     if (urlParams.get('autostart') === 'true') {
       beginAdventure();
     }
+    if (urlParams.get('skipintro') === 'true' && this.intro) {
+      setTimeout(() => this.intro.skip(), 100);
+    }
     if (urlParams.get('level') === '2') {
       beginAdventure();
+      if (this.intro) this.intro.finish();
       setTimeout(() => {
         this.transitionToLevel2();
       }, 150);
@@ -173,13 +204,17 @@ class GameManager {
     const delta = Math.min(0.08, this.clock.getDelta());
     const time = this.clock.getElapsedTime();
 
-    // 1. Update Player Locomotion & Camera with active level colliders
-    const colliders = this.currentLevel === 1 
-      ? (this.temple ? this.temple.colliders : []) 
-      : (this.lake ? this.lake.colliders : []);
+    // 1. Cinematic Intro or Player Locomotion
+    if (this.intro && this.intro.active) {
+      this.intro.update(delta);
+    } else {
+      const colliders = this.currentLevel === 1 
+        ? (this.temple ? this.temple.colliders : []) 
+        : (this.lake ? this.lake.colliders : []);
 
-    if (this.player) {
-      this.player.update(delta, colliders);
+      if (this.player) {
+        this.player.update(delta, colliders);
+      }
     }
 
     // 2. Update Active Level Dynamic Animations

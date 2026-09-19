@@ -31,6 +31,7 @@ class PostProcessingManager {
       uBlueRestored: { value: 0.0 },      // 0.0 = Blue locked, 1.0 = Blue restored
       uBlueShockwaveRadius: { value: 0.0 },
       uBlueShockwaveCenter: { value: new THREE.Vector2(0.5, 0.5) },
+      uWorldSaturation: { value: 0.0 },   // 1.0 = Full rich color, 0.0 = Noir monochrome
       uVignette: { value: 0.45 },
       uContrast: { value: 1.15 },
       uTime: { value: 0.0 }
@@ -52,6 +53,7 @@ class PostProcessingManager {
       uniform float uBlueRestored;
       uniform float uBlueShockwaveRadius;
       uniform vec2 uBlueShockwaveCenter;
+      uniform float uWorldSaturation;
       uniform float uVignette;
       uniform float uContrast;
       uniform float uTime;
@@ -131,7 +133,9 @@ class PostProcessingManager {
         float waveMaskB = smoothstep(uBlueShockwaveRadius + 0.05, uBlueShockwaveRadius - 0.05, distFromCenterB);
         float effectiveBlueRestoration = max(uBlueRestored, waveMaskB);
 
-        vec3 finalColor = monoColor;
+        // Base color mixes between full color scene and monochrome based on uWorldSaturation
+        vec3 baseColor = mix(monoColor, texColor.rgb, clamp(uWorldSaturation, 0.0, 1.0));
+        vec3 finalColor = baseColor;
 
         // Apply subtle magical particle luminescence in B&W
         finalColor = mix(finalColor, vibrantBlue, isMagicalSparkle * 0.75);
@@ -184,6 +188,10 @@ class PostProcessingManager {
   setBlueRestoration(progress) {
     this.uniforms.uBlueRestored.value = progress;
     this.uniforms.uBlueShockwaveRadius.value = progress * 2.0;
+  }
+
+  setWorldSaturation(saturation) {
+    this.uniforms.uWorldSaturation.value = Math.max(0.0, Math.min(1.0, saturation));
   }
 
   render(time) {
