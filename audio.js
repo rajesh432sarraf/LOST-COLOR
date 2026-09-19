@@ -623,6 +623,85 @@ class SoundSystem {
     drop.stop(now + 0.45);
   }
 
+  // Wooden xylophone / marimba chime when a forest shrine connection is made
+  playForestStep(stepIndex = 0) {
+    if (!this.initialized || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    // Organic wooden chime
+    const baseFreqs = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5 (C Major growth)
+    const freq = baseFreqs[stepIndex % 4];
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.05, now + 0.08);
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 1.25);
+
+    // High sparkling leaf chime
+    const shimmer = this.ctx.createOscillator();
+    const sGain = this.ctx.createGain();
+    shimmer.type = 'sine';
+    shimmer.frequency.setValueAtTime(freq * 3, now + 0.04);
+    sGain.gain.setValueAtTime(0.15, now + 0.04);
+    sGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    shimmer.connect(sGain);
+    sGain.connect(this.sfxGain);
+    shimmer.start(now + 0.04);
+    shimmer.stop(now + 0.55);
+  }
+
+  // Grand Emerald Life Restoration Fanfare
+  playGreenColorTransformation() {
+    if (!this.initialized || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    // Deep nature root surge
+    const surge = this.ctx.createOscillator();
+    const surgeGain = this.ctx.createGain();
+    surge.type = 'sine';
+    surge.frequency.setValueAtTime(164.81, now); // E3
+    surge.frequency.exponentialRampToValueAtTime(55.0, now + 2.4);
+    surgeGain.gain.setValueAtTime(0.6, now);
+    surgeGain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+    surge.connect(surgeGain);
+    surgeGain.connect(this.sfxGain);
+    surge.start(now);
+    surge.stop(now + 2.6);
+
+    // Pastoral triumphant major chords (C Major -> F Major -> G Major -> Grand C Major)
+    const chords = [
+      [261.63, 329.63, 392.00],        // C Major
+      [349.23, 440.00, 523.25],        // F Major
+      [392.00, 493.88, 587.33],        // G Major
+      [523.25, 659.25, 783.99, 1046.5] // Grand high C octave
+    ];
+
+    chords.forEach((chord, step) => {
+      const stepTime = now + 0.35 + step * 0.8;
+      chord.forEach(f => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, stepTime);
+        gain.gain.setValueAtTime(0.24, stepTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, stepTime + 1.8);
+        osc.connect(gain);
+        gain.connect(this.musicGain);
+        osc.start(stepTime);
+        osc.stop(stepTime + 1.9);
+      });
+    });
+  }
+
   // Ethereal clue discovery chime
   playClueDiscovered() {
     if (!this.initialized || this.isMuted) return;

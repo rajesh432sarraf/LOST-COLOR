@@ -31,6 +31,9 @@ class PostProcessingManager {
       uBlueRestored: { value: 0.0 },      // 0.0 = Blue locked, 1.0 = Blue restored
       uBlueShockwaveRadius: { value: 0.0 },
       uBlueShockwaveCenter: { value: new THREE.Vector2(0.5, 0.5) },
+      uGreenRestored: { value: 0.0 },     // 0.0 = Green locked, 1.0 = Green restored
+      uGreenShockwaveRadius: { value: 0.0 },
+      uGreenShockwaveCenter: { value: new THREE.Vector2(0.5, 0.5) },
       uWorldSaturation: { value: 1.0 },   // 1.0 = Full rich color, 0.0 = Noir monochrome
       uVignette: { value: 0.38 },
       uContrast: { value: 1.10 },
@@ -53,6 +56,9 @@ class PostProcessingManager {
       uniform float uBlueRestored;
       uniform float uBlueShockwaveRadius;
       uniform vec2 uBlueShockwaveCenter;
+      uniform float uGreenRestored;
+      uniform float uGreenShockwaveRadius;
+      uniform vec2 uGreenShockwaveCenter;
       uniform float uWorldSaturation;
       uniform float uVignette;
       uniform float uContrast;
@@ -152,6 +158,20 @@ class PostProcessingManager {
           finalColor = mix(finalColor, blueAccent, effectiveBlueRestoration);
         }
 
+        // Effective green restoration wave
+        vec2 centerDiffG = uv - uGreenShockwaveCenter;
+        float distFromCenterG = length(centerDiffG);
+        float waveMaskG = smoothstep(uGreenShockwaveRadius + 0.05, uGreenShockwaveRadius - 0.05, distFromCenterG);
+        float effectiveGreenRestoration = max(uGreenRestored, waveMaskG);
+
+        // Apply Green Restoration
+        if (effectiveGreenRestoration > 0.0) {
+          vec3 vibrantGreen = vec3(texColor.r * 0.15, min(1.0, texColor.g * 1.5 + 0.1), texColor.b * 0.2);
+          float isGreen = smoothstep(0.05, 0.22, texColor.g - max(texColor.r, texColor.b));
+          vec3 greenAccent = mix(finalColor, vibrantGreen, isGreen);
+          finalColor = mix(finalColor, greenAccent, effectiveGreenRestoration);
+        }
+
         // Soft cinematic vignette
         float vignette = 1.0 - dot(vUv - 0.5, vUv - 0.5) * uVignette * 1.8;
         finalColor *= clamp(vignette, 0.0, 1.0);
@@ -188,6 +208,11 @@ class PostProcessingManager {
   setBlueRestoration(progress) {
     this.uniforms.uBlueRestored.value = progress;
     this.uniforms.uBlueShockwaveRadius.value = progress * 2.0;
+  }
+
+  setGreenRestoration(progress) {
+    this.uniforms.uGreenRestored.value = progress;
+    this.uniforms.uGreenShockwaveRadius.value = progress * 2.0;
   }
 
   setWorldSaturation(saturation) {

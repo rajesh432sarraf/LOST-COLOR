@@ -45,6 +45,8 @@ class UIManager {
     // Victory screens
     this.victoryScreen = document.getElementById('victory-screen');
     this.level2VictoryScreen = document.getElementById('level2-victory-screen');
+    this.level3IntroDashboard = document.getElementById('level3-intro-dashboard');
+    this.level3VictoryScreen = document.getElementById('level3-victory-screen');
     this.currentObjectiveText = document.getElementById('current-objective-text');
 
     this.score = 0;
@@ -52,6 +54,7 @@ class UIManager {
     this.isMuted = false;
     this.currentLevel = 1;
     this.lake = null;
+    this.forest = null;
 
     this.initButtons();
     this.initMobileControls();
@@ -129,7 +132,36 @@ class UIManager {
     const btnLevel3 = document.getElementById('btn-continue-level3');
     if (btnLevel3) {
       btnLevel3.addEventListener('click', () => {
-        this.showNotification('✨ Level 3 is under development! Thank you for playing.');
+        if (this.level2VictoryScreen) {
+          this.level2VictoryScreen.classList.remove('visible');
+        }
+        if (window.gameManager) {
+          window.gameManager.transitionToLevel3();
+        }
+      });
+    }
+
+    // Level 3 Intro Dashboard "START CHAPTER 3" button
+    const btnStartLevel3 = document.getElementById('btn-start-level3');
+    if (btnStartLevel3) {
+      btnStartLevel3.addEventListener('click', () => {
+        this.hideLevel3IntroDashboard();
+        try {
+          if (window.gameManager && window.gameManager.renderer) {
+            window.gameManager.renderer.domElement.requestPointerLock();
+          }
+        } catch (e) {}
+
+        this.showNotification('🌿 Forest of Life: Awaken the Cycle of Life');
+        this.setObjective('Explore the sacred grove and inspect the 4 overgrown shrines.');
+      });
+    }
+
+    // Game Complete / Play Again button
+    const btnPlayAgain = document.getElementById('btn-play-again');
+    if (btnPlayAgain) {
+      btnPlayAgain.addEventListener('click', () => {
+        window.location.href = window.location.pathname;
       });
     }
   }
@@ -437,6 +469,69 @@ class UIManager {
     }
   }
 
+  showLevel3IntroDashboard() {
+    if (this.level3IntroDashboard) {
+      this.level3IntroDashboard.classList.add('open');
+      try { document.exitPointerLock(); } catch (e) {}
+    }
+  }
+
+  hideLevel3IntroDashboard() {
+    if (this.level3IntroDashboard) {
+      this.level3IntroDashboard.classList.remove('open');
+    }
+  }
+
+  showLevel3VictoryScreen() {
+    if (this.level3VictoryScreen) {
+      this.level3VictoryScreen.classList.add('visible');
+      try { document.exitPointerLock(); } catch (e) {}
+    }
+  }
+
+  setupLevel3UI(forest) {
+    this.forest = forest;
+    this.currentLevel = 3;
+
+    const titleBadge = document.querySelector('.title-badge');
+    if (titleBadge) {
+      titleBadge.innerHTML = `
+        <h1>COLOR THIEF <span style="color: #2ecc71; text-shadow: 0 0 14px rgba(46, 204, 113, 0.85);">FOREST OF LIFE</span></h1>
+        <div class="subtitle">The Emerald Grove · Chapter III</div>
+        <div class="hud-score" id="hud-score-display">Score: ${this.score}</div>
+      `;
+    }
+
+    this.setObjective('Explore the sacred grove and inspect the 4 overgrown shrines.');
+
+    const questUl = document.querySelector('.quest-steps');
+    if (questUl) {
+      questUl.innerHTML = `
+        <li class="quest-step active" id="l3-step-0">
+          <span class="step-dot"></span>
+          <span>Inspect 4 Forest Shrines (🌱 🌿 🌳 🌸)</span>
+        </li>
+        <li class="quest-step" id="l3-step-1">
+          <span class="step-dot"></span>
+          <span>Awaken Cycle (SEED ➔ SPROUT ➔ TREE ➔ BLOOM)</span>
+        </li>
+        <li class="quest-step" id="l3-step-2">
+          <span class="step-dot"></span>
+          <span>Witness the Elder Oak Open</span>
+        </li>
+        <li class="quest-step" id="l3-step-3">
+          <span class="step-dot"></span>
+          <span>Claim the Sacred Life Crystal</span>
+        </li>
+      `;
+      this.questSteps = document.querySelectorAll('.quest-step');
+    }
+
+    if (this.keySlot) {
+      this.keySlot.style.display = 'none';
+    }
+  }
+
   setupLevel2UI(lake) {
     this.lake = lake;
     this.currentLevel = 2;
@@ -533,7 +628,7 @@ class UIManager {
 
       this.drawPOIMarker(ctx, mapX(0), mapY(20), '#ff4455', '🚪');
       this.drawPOIMarker(ctx, mapX(0), mapY(-65), '#ff1128', '🔥');
-    } else {
+    } else if (this.currentLevel === 2) {
       // Level 2: Water Realm - The Dried Lake Mini-Map
       const scale = 2.4;
       const mapX = (worldX) => centerX + (worldX - this.player.position.x) * scale;
@@ -582,6 +677,55 @@ class UIManager {
       this.drawPOIMarker(ctx, mapX(0), mapY(14), '#38b6ff', '🏞️');
       // Stone 4: 🌊 RIVER (West: -14, 0)
       this.drawPOIMarker(ctx, mapX(-14), mapY(0), '#38b6ff', '🌊');
+    } else {
+      // Level 3: Forest of Life Mini-Map
+      const scale = 2.4;
+      const mapX = (worldX) => centerX + (worldX - this.player.position.x) * scale;
+      const mapY = (worldZ) => centerY + (worldZ - this.player.position.z) * scale;
+
+      // Outer Forest Perimeter (radius 75m)
+      ctx.beginPath();
+      ctx.arc(mapX(0), mapY(0), 75 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f2016';
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#1e824c';
+      ctx.stroke();
+
+      // Circular Trail Ring (radius 16m)
+      ctx.beginPath();
+      ctx.arc(mapX(0), mapY(0), 16 * scale, 0, Math.PI * 2);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(46, 204, 113, 0.4)';
+      ctx.stroke();
+
+      // Connecting vine circuit lines
+      ctx.strokeStyle = 'rgba(46, 204, 113, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(mapX(0), mapY(-16));
+      ctx.lineTo(mapX(16), mapY(0));
+      ctx.lineTo(mapX(0), mapY(16));
+      ctx.lineTo(mapX(-16), mapY(0));
+      ctx.closePath();
+      ctx.stroke();
+
+      // Center: The Elder Oak Tree & Life Crystal
+      ctx.beginPath();
+      ctx.arc(mapX(0), mapY(0), 3.6 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = '#1b5e20';
+      ctx.fill();
+      this.drawPOIMarker(ctx, mapX(0), mapY(0), '#2ecc71', '💎');
+
+      // 4 Shrines (radius 16m)
+      // Shrine 1: 🌱 SEED (North: 0, -16)
+      this.drawPOIMarker(ctx, mapX(0), mapY(-16), '#55efc4', '🌱');
+      // Shrine 2: 🌿 SPROUT (East: 16, 0)
+      this.drawPOIMarker(ctx, mapX(16), mapY(0), '#55efc4', '🌿');
+      // Shrine 3: 🌳 TREE (South: 0, 16)
+      this.drawPOIMarker(ctx, mapX(0), mapY(16), '#55efc4', '🌳');
+      // Shrine 4: 🌸 BLOOM (West: -16, 0)
+      this.drawPOIMarker(ctx, mapX(-16), mapY(0), '#55efc4', '🌸');
     }
 
     // Player Direction Cone & Position Marker

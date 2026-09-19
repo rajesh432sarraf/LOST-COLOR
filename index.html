@@ -216,7 +216,72 @@
       </div>
     </div>
     <div class="victory-buttons">
-      <button class="btn-primary btn-glow-blue btn-large" id="btn-continue-level3">CONTINUE TO LEVEL 3</button>
+      <button class="btn-primary btn-glow-blue btn-large" id="btn-continue-level3">CONTINUE TO LEVEL 3 ➜</button>
+    </div>
+  </div>
+
+  <!-- LEVEL 3 INTRO DASHBOARD -->
+  <div id="level3-intro-dashboard" class="dashboard-modal">
+    <div class="dashboard-card">
+      <div class="dashboard-tag" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71; border-color: rgba(46, 204, 113, 0.4);">LEVEL 3</div>
+      <h1 class="dashboard-title" style="color: #2ecc71; text-shadow: 0 0 16px rgba(46, 204, 113, 0.85);">🌿 FOREST OF LIFE</h1>
+      <h2 class="dashboard-subtitle">The Emerald Grove</h2>
+      <div class="dashboard-divider"></div>
+
+      <div class="dashboard-info-box">
+        <div class="info-row">
+          <span class="info-label">Objective:</span>
+          <span class="info-val">Awaken the Cycle of Life and reveal the Sacred Life Crystal.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Hint:</span>
+          <span class="info-val">Life begins as a seed, sprouts to light, grows into a tree, and blooms forever.</span>
+        </div>
+        <div class="info-row reward-highlight">
+          <span class="info-label">Reward:</span>
+          <span class="info-val">💎 Green Life Crystal · World Restored!</span>
+        </div>
+      </div>
+
+      <button class="btn-primary btn-glow-blue btn-large" id="btn-start-level3" style="background: linear-gradient(135deg, #1b5e20 0%, #2ecc71 100%); box-shadow: 0 0 20px rgba(46, 204, 113, 0.7);">START CHAPTER 3</button>
+    </div>
+  </div>
+
+  <!-- LEVEL 3 / GRAND FINALE VICTORY SCREEN -->
+  <div class="victory-screen victory-screen-blue" id="level3-victory-screen">
+    <div class="victory-title" style="color: #2ecc71; text-shadow: 0 0 24px rgba(46, 204, 113, 0.9);">ALL CRYSTALS RESTORED!</div>
+    <div class="victory-subtitle">The World of Color is Saved</div>
+    <div class="victory-card" style="border-color: rgba(46, 204, 113, 0.6); box-shadow: 0 0 40px rgba(46, 204, 113, 0.35);">
+      <p class="victory-message">
+        Legendary Explorer! You awakened the Elder Oak and recovered the Green Life Crystal.
+        Together with Fire and Water, all stolen colors are permanently returned to the universe!
+      </p>
+
+      <div style="display: flex; justify-content: center; gap: 18px; margin: 18px 0;">
+        <div style="text-align: center; background: rgba(0,0,0,0.4); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(255, 68, 68, 0.5);">
+          <div style="font-size: 2rem;">🔴</div>
+          <div style="color: #ff4444; font-weight: bold; font-size: 0.85rem; margin-top: 4px;">Fire Crystal</div>
+        </div>
+        <div style="text-align: center; background: rgba(0,0,0,0.4); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(0, 212, 255, 0.5);">
+          <div style="font-size: 2rem;">🔵</div>
+          <div style="color: #00d4ff; font-weight: bold; font-size: 0.85rem; margin-top: 4px;">Water Crystal</div>
+        </div>
+        <div style="text-align: center; background: rgba(0,0,0,0.4); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(46, 204, 113, 0.5);">
+          <div style="font-size: 2rem;">🟢</div>
+          <div style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; margin-top: 4px;">Life Crystal</div>
+        </div>
+      </div>
+
+      <div class="victory-reward-badge" style="border-color: rgba(46, 204, 113, 0.5); background: rgba(46, 204, 113, 0.12);">
+        <div class="reward-icon-water" style="color: #2ecc71;">🏆</div>
+        <div class="reward-text-group">
+          <div class="reward-title" style="color: #2ecc71;">Grand Master Explorer</div>
+          <div class="reward-score">+300 Score · Full Game Complete!</div>
+        </div>
+      </div>
+    </div>
+    <div class="victory-buttons">
+      <button class="btn-primary btn-glow-gold btn-large" id="btn-play-again">PLAY AGAIN ↺</button>
     </div>
   </div>
 
@@ -282,6 +347,7 @@
   <script src="player.js"></script>
   <script src="temple.js"></script>
   <script src="lake.js"></script>
+  <script src="forest.js"></script>
   <script src="puzzles.js"></script>
   <script src="postprocessing.js"></script>
   <script src="intro.js"></script>

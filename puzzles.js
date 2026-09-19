@@ -48,6 +48,43 @@ class PuzzleManager {
     this.waterClimaxActive = false;
     this.waterClimaxTimer = 0;
     this.level2VictoryShown = false;
+
+    // Level 3 Forest Clues & Connection State
+    this.forestClues = {
+      seed: false,
+      sprout: false,
+      tree: false,
+      bloom: false
+    };
+    this.loadSavedForestClues();
+    this.allForestCluesDiscovered = Object.values(this.forestClues).every(Boolean);
+    this.forestSequence = [];
+    this.forestPuzzleSolved = false;
+    this.forestClimaxActive = false;
+    this.forestClimaxTimer = 0;
+    this.level3VictoryShown = false;
+  }
+
+  loadSavedForestClues() {
+    try {
+      const saved = localStorage.getItem('forest_realm_clues');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          this.forestClues = Object.assign(this.forestClues, parsed);
+        }
+      }
+    } catch (e) {
+      console.log('Error loading saved forest clues:', e);
+    }
+  }
+
+  saveForestClues() {
+    try {
+      localStorage.setItem('forest_realm_clues', JSON.stringify(this.forestClues));
+    } catch (e) {
+      console.log('Error saving forest clues:', e);
+    }
   }
 
   loadSavedClues() {
@@ -78,6 +115,14 @@ class PuzzleManager {
     this.currentInteraction = null;
     this.connectionSequence = [];
     this.allCluesDiscovered = Object.values(this.discoveredClues).every(Boolean);
+  }
+
+  setLevel3(forest) {
+    this.forest = forest;
+    this.currentLevel = 3;
+    this.currentInteraction = null;
+    this.forestSequence = [];
+    this.allForestCluesDiscovered = Object.values(this.forestClues).every(Boolean);
   }
 
   update(delta, time) {
@@ -139,6 +184,23 @@ class PuzzleManager {
         }
       }
     }
+
+    // 5. Level 3 Green Life Climax Sequence
+    if (this.forestClimaxActive) {
+      this.forestClimaxTimer += delta;
+      const greenProgress = Math.min(1.0, this.forestClimaxTimer / 2.5);
+
+      if (window.postProcessing) {
+        window.postProcessing.setGreenRestoration(greenProgress);
+      }
+
+      if (this.forestClimaxTimer >= 2.8 && !this.level3VictoryShown) {
+        this.level3VictoryShown = true;
+        if (window.uiManager) {
+          window.uiManager.showLevel3VictoryScreen();
+        }
+      }
+    }
   }
 
   checkInteractions() {
@@ -148,7 +210,9 @@ class PuzzleManager {
 
     const items = this.currentLevel === 1 
       ? (this.temple ? this.temple.interactables : []) 
-      : (this.lake ? this.lake.interactables : []);
+      : this.currentLevel === 2
+        ? (this.lake ? this.lake.interactables : [])
+        : (this.forest ? this.forest.interactables : []);
 
     for (let item of items) {
       if (item.isCollected || item.isClaimed || (item.type === 'door' && this.questState.doorUnlocked)) {
@@ -200,13 +264,22 @@ class PuzzleManager {
         this.claimRedCrystal(item);
         break;
 
-      // Level 2: Water Realm
+      // Level 2: Lake
       case 'water_pillar':
         this.handleWaterPillarInteract(item);
         break;
 
       case 'water_crystal':
         this.claimWaterCrystal(item);
+        break;
+
+      // Level 3: Forest
+      case 'forest_shrine':
+        this.handleForestShrineInteract(item);
+        break;
+
+      case 'life_crystal':
+        this.claimLifeCrystal(item);
         break;
     }
   }
@@ -522,6 +595,159 @@ class PuzzleManager {
       window.uiManager.completeQuestStep(3);
       window.uiManager.showNotification('💎 Water Crystal Collected! (+200 Score)');
       window.uiManager.setObjective('Water Crystal Collected! The sacred lake is restored.');
+    }
+  }
+
+  // ==========================================
+  // Level 3: Forest of Life Shrine Clues & Puzzle
+  // ==========================================
+
+  handleForestShrineInteract(item) {
+    if (!this.forest) return;
+
+    const shrineKey = item.id; // 'seed', 'sprout', 'tree', 'bloom'
+    const shrineData = this.forest.shrineConfigs[shrineKey];
+    if (!shrineData) return;
+
+    // Phase 1: Clue Discovery
+    if (!this.allForestCluesDiscovered) {
+      this.forestClues[shrineKey] = true;
+      this.saveForestClues();
+
+      if (window.soundSystem) {
+        window.soundSystem.playClueDiscovered();
+      }
+
+      if (window.uiManager) {
+        window.uiManager.openClueModal(shrineData.name, shrineData.icon, shrineData.clue);
+      }
+
+      const count = Object.values(this.forestClues).filter(Boolean).length;
+      if (count === 4) {
+        this.allForestCluesDiscovered = true;
+        if (window.soundSystem) {
+          window.soundSystem.playTotemActivate(2);
+        }
+        if (window.uiManager) {
+          window.uiManager.completeQuestStep(0);
+          window.uiManager.showNotification('✨ All 4 Forest Clues Discovered! Puzzle Activated.');
+          window.uiManager.setObjective('Awaken the Cycle of Life: SEED ➔ SPROUT ➔ TREE ➔ BLOOM');
+          window.uiManager.showBanner('Awaken the Cycle of Life: SEED ➔ SPROUT ➔ TREE ➔ BLOOM');
+        }
+      } else {
+        if (window.uiManager) {
+          window.uiManager.setObjective(`Discovered ${count}/4 clues. Inspect the remaining forest shrines.`);
+        }
+      }
+      return;
+    }
+
+    // Phase 2: Connection Sequence
+    if (this.forestPuzzleSolved) return;
+
+    const expectedOrder = ['seed', 'sprout', 'tree', 'bloom'];
+    const currentStepIndex = this.forestSequence.length;
+
+    if (this.forestSequence.includes(shrineKey)) {
+      if (window.uiManager) {
+        window.uiManager.showNotification(`⚠️ ${shrineData.icon} ${shrineKey.toUpperCase()} is already active.`);
+      }
+      return;
+    }
+
+    if (shrineKey === expectedOrder[currentStepIndex]) {
+      // Correct!
+      this.forestSequence.push(shrineKey);
+      const newStep = this.forestSequence.length;
+
+      this.forest.activateConnectionStep(newStep);
+
+      if (window.soundSystem) {
+        window.soundSystem.playForestStep(newStep - 1);
+      }
+
+      if (window.uiManager) {
+        window.uiManager.showNotification(`✨ Awakened: ${shrineData.icon} ${shrineKey.toUpperCase()} (${newStep}/4)`);
+      }
+
+      if (newStep === 4) {
+        this.forestPuzzleSolved = true;
+
+        if (window.uiManager) {
+          window.uiManager.completeQuestStep(1);
+          window.uiManager.showNotification('🌿 The Cycle of Life is Restored! The Elder Oak awakens.');
+          window.uiManager.setObjective('The Elder Tree opens its roots! Witness the Green Life Crystal emerge.');
+        }
+
+        setTimeout(() => {
+          this.forest.triggerCrystalRevealCinematic();
+          if (window.uiManager) {
+            window.uiManager.completeQuestStep(2);
+            window.uiManager.setObjective('The Sacred Life Crystal is revealed! Approach the Elder Oak and collect it.');
+          }
+        }, 1200);
+      }
+    } else {
+      // Incorrect order
+      if (window.soundSystem) {
+        window.soundSystem.playWrongSequence();
+      }
+
+      if (window.uiManager) {
+        window.uiManager.triggerRedFlash();
+        window.uiManager.showNotification('Incorrect Cycle. Try Again.');
+        window.uiManager.setObjective('Incorrect Cycle. Start with: 🌱 SEED');
+      }
+
+      this.forestSequence = [];
+      this.forest.resetConnectionAttempt();
+    }
+  }
+
+  // Claim Green Life Crystal Climax
+  claimLifeCrystal(item) {
+    if (this.forestClimaxActive) return;
+
+    item.isClaimed = true;
+    item.isCollected = true;
+    this.questState.forestCompleted = true;
+    this.forestClimaxActive = true;
+    this.forestClimaxTimer = 0;
+
+    // Crystal flies to player
+    if (this.forest && this.forest.crystalGroup && this.player) {
+      const startPos = this.forest.crystalGroup.position.clone();
+      const targetPos = this.player.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+      let flyT = 0;
+      const flyInterval = setInterval(() => {
+        flyT += 0.05;
+        if (flyT >= 1.0) {
+          clearInterval(flyInterval);
+          this.forest.crystalGroup.visible = false;
+        } else {
+          this.forest.crystalGroup.position.lerpVectors(startPos, targetPos, flyT);
+          this.forest.crystalGroup.scale.multiplyScalar(0.96);
+        }
+      }, 30);
+    }
+
+    if (this.forest) {
+      this.forest.triggerNaturePulseWave();
+    }
+
+    if (window.soundSystem) {
+      window.soundSystem.playGreenColorTransformation();
+    }
+
+    if (this.player) {
+      this.player.addCameraShake(0.38, 2.2);
+    }
+
+    if (window.uiManager) {
+      window.uiManager.addScore(300);
+      window.uiManager.completeQuestStep(3);
+      window.uiManager.showNotification('💎 Sacred Life Crystal Collected! (+300 Score)');
+      window.uiManager.setObjective('All 3 Sacred Crystals Restored! The World of Color is Saved!');
     }
   }
 }

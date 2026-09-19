@@ -143,6 +143,13 @@ class GameManager {
         this.transitionToLevel2();
       }, 150);
     }
+    if (urlParams.get('level') === '3') {
+      beginAdventure();
+      if (this.intro) this.intro.finish();
+      setTimeout(() => {
+        this.transitionToLevel3();
+      }, 150);
+    }
   }
 
   // ==========================================
@@ -193,6 +200,60 @@ class GameManager {
     }
   }
 
+  // ==========================================
+  // Level Transition: Level 2 -> LEVEL 3 – FOREST OF LIFE
+  // ==========================================
+  transitionToLevel3() {
+    // 1. Completely remove Level 1 objects if any
+    if (this.templeObjects && this.templeObjects.length > 0) {
+      this.templeObjects.forEach(obj => {
+        obj.visible = false;
+        this.scene.remove(obj);
+      });
+    }
+    if (this.temple && this.temple.group) {
+      this.scene.remove(this.temple.group);
+      this.temple.group.visible = false;
+    }
+
+    // 2. Remove Level 2 Lake from scene
+    if (this.lake && this.lake.group) {
+      this.scene.remove(this.lake.group);
+      this.lake.group.visible = false;
+    }
+
+    // 3. Build Level 3: Forest of Life
+    this.forest = new ForestLevel(this.scene);
+    this.currentLevel = 3;
+
+    // 4. Reposition player at south entry glade facing North toward Elder Tree
+    if (this.player) {
+      this.player.position.set(0, 0.0, 32);
+      this.player.velocity.set(0, 0, 0);
+      this.player.verticalVelocity = 0;
+      this.player.isGrounded = true;
+      this.player.cameraYaw = Math.PI; // Face North toward Elder Tree
+      this.player.cameraPitch = 0.14;
+      this.player.targetRotationY = Math.PI;
+      this.player.rotationY = Math.PI;
+      this.player.characterMesh.rotation.y = Math.PI;
+      this.player.root.position.copy(this.player.position);
+    }
+
+    // 5. Update PuzzleManager & UIManager for Level 3
+    if (this.puzzles) {
+      this.puzzles.setLevel3(this.forest);
+    }
+    if (this.ui) {
+      this.ui.setupLevel3UI(this.forest);
+    }
+
+    // 6. Display the clean full-screen LEVEL 3 INTRO DASHBOARD
+    if (this.ui) {
+      this.ui.showLevel3IntroDashboard();
+    }
+  }
+
   onWindowResize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -218,7 +279,9 @@ class GameManager {
     } else {
       const colliders = this.currentLevel === 1 
         ? (this.temple ? this.temple.colliders : []) 
-        : (this.lake ? this.lake.colliders : []);
+        : this.currentLevel === 2
+          ? (this.lake ? this.lake.colliders : [])
+          : (this.forest ? this.forest.colliders : []);
 
       if (this.player) {
         this.player.update(delta, colliders);
@@ -230,6 +293,8 @@ class GameManager {
       this.temple.update(delta, time);
     } else if (this.currentLevel === 2 && this.lake) {
       this.lake.update(delta, time);
+    } else if (this.currentLevel === 3 && this.forest) {
+      this.forest.update(delta, time);
     }
 
     // 3. Update Puzzles & Climax Sequence

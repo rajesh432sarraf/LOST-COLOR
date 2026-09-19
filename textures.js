@@ -645,6 +645,88 @@ class TextureGenerator {
         ctx.fillStyle = isLit ? '#ffffff' : '#88d8ff';
         ctx.fill();
         break;
+
+      case 'seed':
+        // Dormant ancient seed in soil with gentle aura
+        ctx.beginPath();
+        ctx.arc(0, 5, 24, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, -22);
+        ctx.quadraticCurveTo(18, -8, 0, 5);
+        ctx.quadraticCurveTo(-18, -8, 0, -22);
+        ctx.fillStyle = isLit ? '#55efc4' : '#00b894';
+        ctx.fill();
+        ctx.stroke();
+        break;
+
+      case 'sprout':
+        // Two tender leaves rising from stem
+        ctx.beginPath();
+        ctx.moveTo(0, 35);
+        ctx.lineTo(0, -10);
+        ctx.stroke();
+        // Left leaf
+        ctx.beginPath();
+        ctx.moveTo(0, 5);
+        ctx.quadraticCurveTo(-35, -5, -25, -30);
+        ctx.quadraticCurveTo(-10, -15, 0, 0);
+        ctx.fillStyle = isLit ? '#55efc4' : '#00b894';
+        ctx.fill();
+        ctx.stroke();
+        // Right leaf
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(35, -10, 25, -35);
+        ctx.quadraticCurveTo(10, -20, 0, -5);
+        ctx.fillStyle = isLit ? '#a8ff78' : '#2ecc71';
+        ctx.fill();
+        ctx.stroke();
+        break;
+
+      case 'tree':
+        // Great majestic tree with deep roots and spreading crown
+        ctx.beginPath();
+        // Trunk
+        ctx.moveTo(-12, 38);
+        ctx.lineTo(-7, 2);
+        ctx.lineTo(7, 2);
+        ctx.lineTo(12, 38);
+        // Roots
+        ctx.moveTo(-12, 38);
+        ctx.lineTo(-26, 46);
+        ctx.moveTo(12, 38);
+        ctx.lineTo(26, 46);
+        ctx.stroke();
+        // Crown cloud of foliage
+        ctx.beginPath();
+        ctx.arc(0, -18, 28, 0, Math.PI * 2);
+        ctx.arc(-22, -8, 20, 0, Math.PI * 2);
+        ctx.arc(22, -8, 20, 0, Math.PI * 2);
+        ctx.arc(-14, -30, 18, 0, Math.PI * 2);
+        ctx.arc(14, -30, 18, 0, Math.PI * 2);
+        ctx.fillStyle = isLit ? '#55efc4' : '#27ae60';
+        ctx.fill();
+        ctx.stroke();
+        break;
+
+      case 'bloom':
+        // Radiant 5-petal wild lotus blossom
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+          ctx.beginPath();
+          ctx.ellipse(Math.cos(a) * 22, Math.sin(a) * 22, 14, 20, a, 0, Math.PI * 2);
+          ctx.fillStyle = isLit ? '#ffeaa7' : '#fd79a8';
+          ctx.fill();
+          ctx.stroke();
+        }
+        // Golden pollen pistil center
+        ctx.beginPath();
+        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.fillStyle = '#f1c40f';
+        ctx.fill();
+        ctx.stroke();
+        break;
     }
 
     ctx.restore();
@@ -1266,6 +1348,197 @@ class TextureGenerator {
 
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 128, 128);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 12. Rich Forest Ground Loam with Moss & Fallen Leaves
+  getForestGround(width = 512, height = 512) {
+    const key = `forest_ground_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    // Deep rich woodland soil base
+    ctx.fillStyle = '#2c2219';
+    ctx.fillRect(0, 0, width, height);
+
+    // Organic earthy soil noise & humus
+    for (let i = 0; i < 4500; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const r = 1 + Math.random() * 2.5;
+      ctx.fillStyle = Math.random() > 0.5 ? '#1e1811' : '#3d3023';
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Patches of creeping emerald moss
+    for (let i = 0; i < 70; i++) {
+      const mx = Math.random() * width;
+      const my = Math.random() * height;
+      const mr = 18 + Math.random() * 35;
+      const mossGrad = ctx.createRadialGradient(mx, my, 2, mx, my, mr);
+      mossGrad.addColorStop(0, 'rgba(46, 125, 50, 0.7)');
+      mossGrad.addColorStop(0.6, 'rgba(30, 86, 49, 0.45)');
+      mossGrad.addColorStop(1, 'rgba(20, 60, 35, 0)');
+      ctx.fillStyle = mossGrad;
+      ctx.beginPath();
+      ctx.arc(mx, my, mr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Scattered autumnal fallen leaves
+    const leafColors = ['#c0392b', '#d35400', '#f39c12', '#7f8c8d', '#27ae60'];
+    for (let i = 0; i < 120; i++) {
+      const lx = Math.random() * width;
+      const ly = Math.random() * height;
+      const rot = Math.random() * Math.PI * 2;
+      const len = 4 + Math.random() * 6;
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(rot);
+      ctx.fillStyle = leafColors[Math.floor(Math.random() * leafColors.length)];
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 2.5, len, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 13. Weathered Ancient Mossy Oak Bark
+  getAncientMossyBark(width = 512, height = 512) {
+    const key = `ancient_mossy_bark_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    // Deep weathered wood tone
+    ctx.fillStyle = '#36291e';
+    ctx.fillRect(0, 0, width, height);
+
+    // Vertical bark fissures and furrows
+    for (let x = 0; x < width; x += 14 + Math.random() * 10) {
+      ctx.strokeStyle = '#1d150e';
+      ctx.lineWidth = 3 + Math.random() * 4;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      let cx = x;
+      for (let y = 0; y < height; y += 40) {
+        cx += (Math.random() - 0.5) * 12;
+        ctx.lineTo(cx, y);
+      }
+      ctx.stroke();
+
+      // Ridge highlight
+      ctx.strokeStyle = '#4e3b2b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + 4, 0);
+      ctx.lineTo(cx + 4, height);
+      ctx.stroke();
+    }
+
+    // Creeping green lichen and moss along tree bark grooves
+    for (let i = 0; i < 45; i++) {
+      const bx = Math.random() * width;
+      const by = Math.random() * height;
+      const br = 12 + Math.random() * 22;
+      const grad = ctx.createRadialGradient(bx, by, 2, bx, by, br);
+      grad.addColorStop(0, 'rgba(85, 239, 196, 0.65)');
+      grad.addColorStop(0.5, 'rgba(0, 184, 148, 0.4)');
+      grad.addColorStop(1, 'rgba(0, 100, 70, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 14. Bioluminescent Mushroom Cap Texture
+  getGlowingMushroomTexture(width = 256, height = 256) {
+    const key = `glowing_mushroom_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    // Vibrant teal & emerald mushroom cap gradient
+    const capGrad = ctx.createRadialGradient(128, 128, 10, 128, 128, 120);
+    capGrad.addColorStop(0.0, '#55efc4'); // Bright luminescent mint
+    capGrad.addColorStop(0.4, '#00b894'); // Lush emerald teal
+    capGrad.addColorStop(0.8, '#0984e3'); // Azure fringe
+    capGrad.addColorStop(1.0, '#130f40'); // Dark outer rim
+    ctx.fillStyle = capGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Glowing spore spots
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 28; i++) {
+      const sx = 30 + Math.random() * 196;
+      const sy = 30 + Math.random() * 196;
+      const sr = 3 + Math.random() * 6;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 15. Overgrown Ancient Stone Shrine Texture with Ivy
+  getOvergrownShrineTexture(width = 512, height = 512) {
+    const key = `overgrown_shrine_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    // Ancient weathered limestone
+    ctx.fillStyle = '#57606f';
+    ctx.fillRect(0, 0, width, height);
+
+    // Stone texture grain
+    for (let i = 0; i < 3000; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      ctx.fillStyle = Math.random() > 0.5 ? '#2f3542' : '#747d8c';
+      ctx.fillRect(x, y, 2, 2);
+    }
+
+    // Carved ancient spiral vine patterns
+    ctx.strokeStyle = '#00b894';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(256, 256, 180, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Creeping ivy leaves around borders
+    for (let i = 0; i < 60; i++) {
+      const edge = Math.floor(Math.random() * 4);
+      let ix = Math.random() * width;
+      let iy = Math.random() * height;
+      if (edge === 0) iy = Math.random() * 70;
+      if (edge === 1) iy = height - Math.random() * 70;
+      if (edge === 2) ix = Math.random() * 70;
+      if (edge === 3) ix = width - Math.random() * 70;
+
+      ctx.fillStyle = '#2ecc71';
+      ctx.beginPath();
+      ctx.ellipse(ix, iy, 7, 14, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     const texture = new THREE.CanvasTexture(canvas);
     this.cache[key] = texture;
