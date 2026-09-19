@@ -81,166 +81,239 @@ class PlayerController {
   }
 
   buildCharacterMesh() {
-    // Materials
+    // High-Fidelity Procedural Canvas Textures
+    const jacketTex = window.textureGen.getLeatherJacketTexture();
+    const pantsTex = window.textureGen.getPantsTexture();
+    const bootsTex = window.textureGen.getBootTexture();
+    const skinTex = window.textureGen.getSkinTexture();
+    const hatTex = window.textureGen.getFedoraTexture();
+    const scarfTex = window.textureGen.getScarfTexture();
+
+    // PBR-Ready Materials
     const skinMat = new THREE.MeshStandardMaterial({
-      color: 0xd9b392,
-      roughness: 0.65,
-      metalness: 0.05
+      map: skinTex,
+      roughness: 0.58,
+      metalness: 0.04
     });
 
     const hairMat = new THREE.MeshStandardMaterial({
-      color: 0x382a1e,
-      roughness: 0.9
+      color: 0x2e1e12,
+      roughness: 0.85
     });
 
     const hatMat = new THREE.MeshStandardMaterial({
-      color: 0x483a2d, // Leather fedora
-      roughness: 0.75
+      map: hatTex,
+      roughness: 0.72,
+      metalness: 0.1
     });
 
     const jacketMat = new THREE.MeshStandardMaterial({
-      color: 0x5e4c3a, // Adventurer jacket
-      roughness: 0.7,
-      metalness: 0.08
+      map: jacketTex,
+      roughness: 0.62,
+      metalness: 0.14
     });
 
     const shirtMat = new THREE.MeshStandardMaterial({
-      color: 0xdcd6cb,
+      color: 0xeee7db,
       roughness: 0.85
     });
 
     const pantsMat = new THREE.MeshStandardMaterial({
-      color: 0x3d433e, // Cargo pants
-      roughness: 0.8
+      map: pantsTex,
+      roughness: 0.76,
+      metalness: 0.06
     });
 
     const bootsMat = new THREE.MeshStandardMaterial({
-      color: 0x241e18, // Laced leather boots
-      roughness: 0.55,
-      metalness: 0.12
+      map: bootsTex,
+      roughness: 0.52,
+      metalness: 0.18
     });
 
     const beltMat = new THREE.MeshStandardMaterial({
-      color: 0x1c1714,
-      roughness: 0.4
+      color: 0x1c120c,
+      roughness: 0.45,
+      metalness: 0.2
     });
 
     const brassMat = new THREE.MeshStandardMaterial({
-      color: 0xd4a853,
-      metalness: 0.85,
-      roughness: 0.25
+      color: 0xe5b95c,
+      metalness: 0.88,
+      roughness: 0.22
     });
 
     const scarfMat = new THREE.MeshStandardMaterial({
-      color: 0xb32832, // Red adventurer scarf
-      roughness: 0.75
+      map: scarfTex,
+      roughness: 0.68
     });
 
     // =========================================================================
-    // UNIFIED ANATOMICAL HIERARCHY:
-    // Boot soles sit strictly at y = 0.0.
-    // Every part overlaps its socket joint so it is physically impossible to detach!
+    // UNIFIED REALISTIC ADVENTURER ANATOMY
     // =========================================================================
 
-    // A. Pelvis / Hips (y = 0.92 to 1.10)
+    // A. Pelvis / Hips (y = 0.95 to 1.05)
     this.pelvis = new THREE.Group();
     this.pelvis.position.set(0, 1.0, 0);
     this.characterMesh.add(this.pelvis);
 
-    const hips = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.22, 0.26), pantsMat);
+    const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.18, 0.22, 14), pantsMat);
+    hips.scale.set(1.15, 1.0, 0.85);
     hips.castShadow = true;
     this.pelvis.add(hips);
 
-    // Utility belt with brass buckle
-    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.07, 0.28), beltMat);
-    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.03), brassMat);
-    buckle.position.set(0, 0, 0.15);
+    // Heavy utility explorer belt
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.08, 16), beltMat);
+    belt.scale.set(1.18, 1.0, 0.9);
+    belt.position.y = 0.08;
+
+    // Golden brass buckle
+    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.08, 0.04), brassMat);
+    buckle.position.set(0, 0, 0.20);
     belt.add(buckle);
 
-    // Pouches & canteen
-    const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.10, 0.06), jacketMat);
-    pouch.position.set(-0.20, -0.04, 0.02);
-    belt.add(pouch);
+    // Explorer pouches & field canteen
+    const pouchL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.10, 0.07), jacketMat);
+    pouchL.position.set(-0.21, -0.02, 0.04);
+    pouchL.rotation.y = 0.25;
+    belt.add(pouchL);
 
-    const canteen = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.13, 10), beltMat);
-    canteen.rotation.z = 0.25;
-    canteen.position.set(0.20, -0.04, 0.02);
+    const pouchR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.10, 0.07), jacketMat);
+    pouchR.position.set(0.21, -0.02, 0.04);
+    pouchR.rotation.y = -0.25;
+    belt.add(pouchR);
+
+    const canteen = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 12), brassMat);
+    canteen.rotation.z = 0.35;
+    canteen.position.set(0.18, -0.04, -0.08);
     belt.add(canteen);
+
+    // Ancient Map Scroll Canister
+    const mapScroll = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.26, 10), jacketMat);
+    mapScroll.rotation.x = Math.PI / 2;
+    mapScroll.rotation.z = 0.4;
+    mapScroll.position.set(-0.16, -0.02, -0.10);
+    belt.add(mapScroll);
+
     this.pelvis.add(belt);
 
     // B. Torso (y = 1.08 to 1.54)
     this.torso = new THREE.Group();
-    this.torso.position.set(0, 0.10, 0); // Relative to pelvis
+    this.torso.position.set(0, 0.10, 0);
     this.pelvis.add(this.torso);
 
-    const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.46, 0.28), jacketMat);
-    torsoMesh.position.y = 0.22;
+    // Contoured leather jacket torso
+    const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.20, 0.46, 14), jacketMat);
+    torsoMesh.scale.set(1.15, 1.0, 0.85);
+    torsoMesh.position.y = 0.23;
     torsoMesh.castShadow = true;
     this.torso.add(torsoMesh);
 
-    // Inner shirt
-    const shirt = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.28, 0.02), shirtMat);
-    shirt.position.set(0, 0.30, 0.145);
+    // 3D Jacket Lapels
+    const lapelGeo = new THREE.BoxGeometry(0.12, 0.32, 0.05);
+    const lapelL = new THREE.Mesh(lapelGeo, jacketMat);
+    lapelL.position.set(-0.08, 0.28, 0.16);
+    lapelL.rotation.z = -0.15;
+    const lapelR = new THREE.Mesh(lapelGeo, jacketMat);
+    lapelR.position.set(0.08, 0.28, 0.16);
+    lapelR.rotation.z = 0.15;
+    this.torso.add(lapelL, lapelR);
+
+    // Inner linen shirt with V-neck
+    const shirt = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.26, 0.02), shirtMat);
+    shirt.position.set(0, 0.28, 0.15);
     this.torso.add(shirt);
 
-    // Red Scarf around collar
-    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.05, 8, 16), scarfMat);
-    scarf.rotation.x = Math.PI / 2;
-    scarf.position.set(0, 0.46, 0);
-    this.torso.add(scarf);
+    // Shoulder Epaulets with brass buttons
+    [-1, 1].forEach((side) => {
+      const epaulet = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.07), jacketMat);
+      epaulet.position.set(side * 0.24, 0.44, 0);
+      const snap = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 6), brassMat);
+      snap.position.set(side * 0.04, 0.02, 0);
+      epaulet.add(snap);
+      this.torso.add(epaulet);
+    });
 
-    // Backpack with Bedroll
-    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.38, 0.18), hatMat);
-    pack.position.set(0, 0.22, -0.22);
+    // Flowing Crimson Scarf with dynamic animated tails
+    const scarfCollar = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.06, 10, 20), scarfMat);
+    scarfCollar.rotation.x = Math.PI / 2;
+    scarfCollar.position.set(0, 0.47, 0);
+    this.torso.add(scarfCollar);
+
+    // Hanging Scarf Tail (animated during movement)
+    this.scarfTail = new THREE.Group();
+    this.scarfTail.position.set(0.06, 0.45, 0.14);
+    const tailMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.02), scarfMat);
+    tailMesh.position.y = -0.14;
+    this.scarfTail.add(tailMesh);
+    this.torso.add(this.scarfTail);
+
+    // Explorer Backpack with Bedroll
+    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.36, 0.16), hatMat);
+    pack.position.set(0, 0.23, -0.22);
     pack.castShadow = true;
 
-    const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.38, 12), pantsMat);
-    roll.rotation.z = Math.PI / 2;
-    roll.position.set(0, 0.43, -0.22);
-    pack.add(roll);
+    const bedroll = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.36, 12), pantsMat);
+    bedroll.rotation.z = Math.PI / 2;
+    bedroll.position.set(0, 0.42, -0.22);
+    pack.add(bedroll);
     this.torso.add(pack);
 
     // C. Head, Hair & Fedora (y = 1.54 to 1.88)
     this.neck = new THREE.Group();
-    this.neck.position.set(0, 0.47, 0);
+    this.neck.position.set(0, 0.48, 0);
     this.torso.add(this.neck);
 
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.23, 0.22), skinMat);
+    // Contoured head with face texture
+    const headGeo = new THREE.BoxGeometry(0.20, 0.22, 0.20);
+    const head = new THREE.Mesh(headGeo, skinMat);
     head.position.y = 0.12;
     head.castShadow = true;
     this.neck.add(head);
 
-    const hair = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.24), hairMat);
-    hair.position.set(0, 0.18, -0.01);
-    this.neck.add(hair);
+    // Styled hair peeking out around sides and back
+    const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.12), hairMat);
+    hairBack.position.set(0, 0.14, -0.09);
+    this.neck.add(hairBack);
 
-    const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.30, 0.03, 16), hatMat);
-    hatBrim.position.y = 0.24;
-    hatBrim.rotation.x = -0.05;
+    // Fedora Hat with curved brim & pinched crown
+    const hatGroup = new THREE.Group();
+    hatGroup.position.set(0, 0.24, 0);
+    hatGroup.rotation.x = -0.06;
 
-    const hatCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.15, 16), hatMat);
+    // Curved oval brim
+    const brimGeo = new THREE.CylinderGeometry(0.28, 0.32, 0.025, 20);
+    const hatBrim = new THREE.Mesh(brimGeo, hatMat);
+    hatBrim.scale.set(1.05, 1.0, 1.25);
+    hatGroup.add(hatBrim);
+
+    // Pinched Fedora Crown
+    const crownGeo = new THREE.CylinderGeometry(0.14, 0.17, 0.15, 16);
+    const hatCrown = new THREE.Mesh(crownGeo, hatMat);
+    hatCrown.scale.set(0.95, 1.0, 1.15);
     hatCrown.position.y = 0.08;
-    hatBrim.add(hatCrown);
+    hatGroup.add(hatCrown);
 
-    const hatBand = new THREE.Mesh(new THREE.CylinderGeometry(0.172, 0.172, 0.03, 16), scarfMat);
-    hatBand.position.y = 0.02;
-    hatBrim.add(hatBand);
-    this.neck.add(hatBrim);
+    // Hat Band with gold buckle
+    const bandGeo = new THREE.CylinderGeometry(0.172, 0.172, 0.035, 16);
+    const hatBand = new THREE.Mesh(bandGeo, beltMat);
+    hatBand.scale.set(0.96, 1.0, 1.16);
+    hatBand.position.y = 0.025;
+    const hatBuckle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.045, 0.02), brassMat);
+    hatBuckle.position.set(0.165, 0.025, 0);
+    hatGroup.add(hatBand, hatBuckle);
 
-    // D. Arms (Shoulders at y = 0.40 relative to torso)
-    this.leftArm = this.createArm(skinMat, jacketMat, true);
-    this.leftArm.position.set(0.28, 0.40, 0);
+    this.neck.add(hatGroup);
+
+    // D. Articulated Arms with Jacket Sleeves & Leather Gloves
+    this.leftArm = this.createArm(skinMat, jacketMat, bootsMat, true);
+    this.leftArm.position.set(0.29, 0.40, 0);
     this.torso.add(this.leftArm);
 
-    this.rightArm = this.createArm(skinMat, jacketMat, false);
-    this.rightArm.position.set(-0.28, 0.40, 0);
+    this.rightArm = this.createArm(skinMat, jacketMat, bootsMat, false);
+    this.rightArm.position.set(-0.29, 0.40, 0);
     this.torso.add(this.rightArm);
 
-    // E. Legs (Hip joints anchored at y = -0.05 relative to pelvis)
-    // In pelvis local space: pelvis at y = 1.0.
-    // Hip joint at y = -0.05 -> World y = 0.95.
-    // Thigh length = 0.45 -> Knee at y = 0.50.
-    // Shin + Boot length = 0.50 -> Boot sole touches floor at EXACTLY y = 0.0!
+    // E. Articulated Legs with Cargo Twill & Laced Boots
     this.leftLeg = this.createLeg(pantsMat, bootsMat, true);
     this.leftLeg.position.set(0.11, -0.05, 0);
     this.pelvis.add(this.leftLeg);
@@ -250,29 +323,34 @@ class PlayerController {
     this.pelvis.add(this.rightLeg);
   }
 
-  createArm(skinMat, jacketMat, isLeft) {
+  createArm(skinMat, jacketMat, gloveMat, isLeft) {
     const shoulder = new THREE.Group();
 
-    // Upper arm
-    const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.06, 0.26, 10), jacketMat);
+    // Upper arm with leather sleeve
+    const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.26, 12), jacketMat);
     upperArm.position.y = -0.13;
     upperArm.castShadow = true;
     shoulder.add(upperArm);
 
-    // Elbow
+    // Elbow Joint
     const elbow = new THREE.Group();
     elbow.position.y = -0.26;
     shoulder.add(elbow);
 
-    // Forearm
-    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.24, 10), skinMat);
+    // Forearm with rolled cuff
+    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.04, 12), jacketMat);
+    cuff.position.y = -0.02;
+    elbow.add(cuff);
+
+    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.22, 12), skinMat);
     forearm.position.y = -0.12;
     forearm.castShadow = true;
     elbow.add(forearm);
 
-    // Glove
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.08), jacketMat);
-    hand.position.y = -0.26;
+    // Sculpted Leather Glove Hand
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.09, 0.09), gloveMat);
+    hand.position.set(0, -0.26, 0.01);
+    hand.castShadow = true;
     elbow.add(hand);
 
     shoulder.userData = { elbow };
@@ -282,30 +360,44 @@ class PlayerController {
   createLeg(pantsMat, bootsMat, isLeft) {
     const hipJoint = new THREE.Group();
 
-    // Thigh: length 0.45 -> knee at y = -0.45
-    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.08, 0.45, 12), pantsMat);
+    // Thigh with cargo twill
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.085, 0.45, 14), pantsMat);
     thigh.position.y = -0.225;
     thigh.castShadow = true;
     hipJoint.add(thigh);
+
+    // Side cargo pocket flap
+    const cargoPocket = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.09), pantsMat);
+    cargoPocket.position.set(isLeft ? 0.09 : -0.09, -0.20, 0);
+    hipJoint.add(cargoPocket);
 
     // Knee joint at y = -0.45
     const knee = new THREE.Group();
     knee.position.y = -0.45;
     hipJoint.add(knee);
 
-    // Shin: length 0.36 -> reaches y = -0.36
-    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.07, 0.36, 12), pantsMat);
+    // Shin: length 0.36
+    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.072, 0.36, 14), pantsMat);
     shin.position.y = -0.18;
     shin.castShadow = true;
     knee.add(shin);
 
-    // Boot: height 0.14 -> from y = -0.36 down to -0.50.
-    // Total from hip: -0.45 + -0.50 = -0.95.
-    // Since hip is at y = 0.95, boot bottom touches floor at EXACTLY y = 0.0!
-    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.24), bootsMat);
-    boot.position.set(0, -0.43, 0.04);
-    boot.castShadow = true;
-    knee.add(boot);
+    // Realistic Laced Explorer Boot:
+    // Boot cuff + foot box with raised heel and toe
+    const bootGroup = new THREE.Group();
+    bootGroup.position.set(0, -0.42, 0.03);
+
+    const bootShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.082, 0.12, 12), bootsMat);
+    bootShaft.position.y = 0.06;
+    bootShaft.castShadow = true;
+    bootGroup.add(bootShaft);
+
+    const bootFoot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.11, 0.25), bootsMat);
+    bootFoot.position.set(0, 0.0, 0.03);
+    bootFoot.castShadow = true;
+    bootGroup.add(bootFoot);
+
+    knee.add(bootGroup);
 
     hipJoint.userData = { knee };
     return hipJoint;
@@ -566,6 +658,12 @@ class PlayerController {
       this.torso.rotation.z = Math.sin(this.animTime * 0.5) * 0.03;
       this.torso.rotation.x = 0.06 * normalizedSpeed;
 
+      // Dynamic scarf fluttering backwards
+      if (this.scarfTail) {
+        this.scarfTail.rotation.x = -0.35 - normalizedSpeed * 0.45 + Math.sin(this.animTime * 1.5) * 0.18;
+        this.scarfTail.rotation.z = Math.sin(this.animTime) * 0.14;
+      }
+
       // Footstep sound
       this.footstepTimer += delta * strideFreq;
       if (this.footstepTimer >= Math.PI) {
@@ -578,6 +676,12 @@ class PlayerController {
       // Idle Breathing
       this.animTime += delta * 2.0;
       const breath = Math.sin(this.animTime);
+
+      this.torso.position.y = 0.10 + breath * 0.008;
+      if (this.scarfTail) {
+        this.scarfTail.rotation.x = -0.1 + breath * 0.05;
+        this.scarfTail.rotation.z = Math.sin(this.animTime * 0.7) * 0.06;
+      }
 
       this.leftLeg.rotation.x = THREE.MathUtils.lerp(this.leftLeg.rotation.x, 0, delta * 8);
       this.rightLeg.rotation.x = THREE.MathUtils.lerp(this.rightLeg.rotation.x, 0, delta * 8);

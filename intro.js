@@ -339,9 +339,9 @@ class CinematicIntro {
       this.crystalsGroup.visible = false;
     }
 
-    // Reset postprocessing to noir
+    // Enable rich atmospheric colors for gameplay
     if (this.postProcessing) {
-      this.postProcessing.setWorldSaturation(0.0);
+      this.postProcessing.setWorldSaturation(1.0);
     }
 
     // Stop intro pad music

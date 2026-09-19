@@ -44,40 +44,64 @@ class TempleLevel {
   }
 
   initMaterials() {
-    const stoneTex = window.textureGen.getAncientStone(512, 512);
-    stoneTex.repeat.set(3, 3);
+    this.braziers = [];
 
-    const floorTex = window.textureGen.getTempleFloor(512, 512);
-    floorTex.repeat.set(6, 6);
-
-    this.matStone = new THREE.MeshStandardMaterial({
-      map: stoneTex,
-      roughness: 0.85,
+    // 1. Realistic Multi-tone Flagstone Pavers with Moss & Mortar (Canvas Techstack)
+    const floorTex = window.textureGen.getRealisticStonePavers(512, 512);
+    floorTex.repeat.set(8, 8);
+    this.matFloor = new THREE.MeshStandardMaterial({
+      map: floorTex,
+      roughness: 0.78,
       metalness: 0.05
     });
 
-    this.matFloor = new THREE.MeshStandardMaterial({
-      map: floorTex,
-      roughness: 0.8,
-      metalness: 0.02
+    // 2. Realistic Ancient Carved Temple Wall Blocks with Hieroglyphs
+    const stoneTex = window.textureGen.getAncientCarvedWallTexture(512, 512);
+    stoneTex.repeat.set(3, 2);
+    this.matStone = new THREE.MeshStandardMaterial({
+      map: stoneTex,
+      roughness: 0.82,
+      metalness: 0.06
     });
 
+    // 3. Fluted Classical Column Material with Chiseled Ribs
+    const pillarTex = window.textureGen.getCarvedPillarTexture(512, 1024);
+    pillarTex.repeat.set(2, 1);
     this.matPillar = new THREE.MeshStandardMaterial({
-      color: 0x757880,
-      roughness: 0.75,
+      map: pillarTex,
+      roughness: 0.74,
       metalness: 0.08
     });
 
+    // 4. Polished Obsidian Dark Basalt
     this.matDarkBasalt = new THREE.MeshStandardMaterial({
       color: 0x22242a,
-      roughness: 0.7,
-      metalness: 0.2
+      roughness: 0.55,
+      metalness: 0.35
     });
 
+    // 5. Polished Antique Gold Trim
     this.matGoldTrim = new THREE.MeshStandardMaterial({
-      color: 0xbfa054,
-      roughness: 0.35,
-      metalness: 0.8
+      color: 0xe5b95c,
+      roughness: 0.28,
+      metalness: 0.88
+    });
+
+    // 6. Ivy & Creeping Moss Material
+    this.matIvy = new THREE.MeshStandardMaterial({
+      color: 0x487538,
+      roughness: 0.88,
+      metalness: 0.02
+    });
+
+    // 7. Flame Glow Material for Braziers
+    this.flameTex = window.textureGen.getFlameSpriteTexture();
+    this.matFlame = new THREE.MeshBasicMaterial({
+      map: this.flameTex,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
     });
 
     // Color Thief Restorable Materials
@@ -241,7 +265,7 @@ class TempleLevel {
     this.scene.add(pediment);
 
     // Temple Entrance Gate (Double stone doors at z = 20, sitting directly on floor at y = 0.0)
-    const doorTex = window.textureGen.getRedDoorTexture();
+    const doorTex = window.textureGen.getOrnateTempleDoorTexture();
     const doorMat = new THREE.MeshStandardMaterial({
       map: doorTex,
       roughness: 0.65,
@@ -405,44 +429,99 @@ class TempleLevel {
   createGuardianFigure(cfg) {
     const guardian = new THREE.Group();
 
-    const torsoGeo = new THREE.CylinderGeometry(0.55, 0.7, 1.8, 12);
+    // 1. Armored Torso with breastplate curve & gold trim
+    const torsoGeo = new THREE.CylinderGeometry(0.52, 0.65, 1.8, 14);
     const torso = new THREE.Mesh(torsoGeo, this.matStone);
     torso.position.y = 0.9;
     torso.castShadow = true;
     guardian.add(torso);
 
-    const pLeft = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.5), this.matStone);
-    pLeft.position.set(0.65, 1.65, 0);
-    const pRight = pLeft.clone();
-    pRight.position.x = -0.65;
-    guardian.add(pLeft, pRight);
+    const breastplate = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.48, 1.1, 14), this.matDarkBasalt);
+    breastplate.position.set(0, 1.05, 0.08);
+    guardian.add(breastplate);
 
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.55), this.matDarkBasalt);
-    head.position.y = 2.05;
-    head.castShadow = true;
-    guardian.add(head);
+    // 2. Ornate Knight Shoulder Pauldrons with Gold Crests
+    [-1, 1].forEach((side) => {
+      const pauldron = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), this.matDarkBasalt);
+      pauldron.scale.set(1.2, 0.8, 1.0);
+      pauldron.position.set(side * 0.72, 1.65, 0);
+      pauldron.castShadow = true;
 
-    // Glowing Chest Emblem
-    const shieldGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.1, 16);
+      const pauldronTrim = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.04, 6, 16), this.matGoldTrim);
+      pauldronTrim.rotation.y = Math.PI / 2;
+      pauldron.add(pauldronTrim);
+      guardian.add(pauldron);
+    });
+
+    // 3. Knight Helmet with Gold Crest & Glowing Eye Visor
+    const helm = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.40, 0.58, 14), this.matDarkBasalt);
+    helm.position.y = 2.05;
+    helm.castShadow = true;
+    guardian.add(helm);
+
+    // Gold Helmet Comb Crest
+    const crest = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.55), this.matGoldTrim);
+    crest.position.set(0, 2.40, -0.05);
+    guardian.add(crest);
+
+    // Glowing Visor Eye Slit (matches element color!)
+    const visorGeo = new THREE.BoxGeometry(0.38, 0.08, 0.08);
+    const visorMat = new THREE.MeshStandardMaterial({
+      color: cfg.color,
+      emissive: cfg.color,
+      emissiveIntensity: 2.5,
+      roughness: 0.2
+    });
+    const visor = new THREE.Mesh(visorGeo, visorMat);
+    visor.position.set(0, 2.05, 0.38);
+    guardian.add(visor);
+
+    // 4. Glowing Elemental Chest Core Shield
+    const shieldGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.12, 16);
     const shieldMat = new THREE.MeshStandardMaterial({
       color: cfg.color,
       emissive: cfg.color,
-      emissiveIntensity: 0.9,
-      metalness: 0.6,
-      roughness: 0.3
+      emissiveIntensity: 1.5,
+      metalness: 0.8,
+      roughness: 0.2
     });
     const shield = new THREE.Mesh(shieldGeo, shieldMat);
     shield.rotation.x = Math.PI / 2;
-    shield.position.set(0, 1.2, 0.55);
+    shield.position.set(0, 1.25, 0.52);
     shield.castShadow = true;
+
+    // Golden bezel
+    const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.05, 8, 20), this.matGoldTrim);
+    shield.add(bezel);
     guardian.add(shield);
 
-    // Greatsword
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.2, 0.05), this.matStone);
-    blade.position.set(0, 1.1, 0.65);
-    const cross = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.12, 0.1), this.matGoldTrim);
-    cross.position.set(0, 2.0, 0.65);
-    guardian.add(blade, cross);
+    // 5. Majestic Ceremonial Broadsword
+    const swordGroup = new THREE.Group();
+    swordGroup.position.set(0, 0, 0.65);
+
+    // Two-handed hilt
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), this.matGoldTrim);
+    pommel.position.y = 2.45;
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45, 8), this.matDarkBasalt);
+    grip.position.y = 2.22;
+    const crossguard = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.10, 0.12), this.matGoldTrim);
+    crossguard.position.y = 1.98;
+
+    // Runed Steel Blade with fuller
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.0, 0.04), this.matStone);
+    blade.position.y = 0.98;
+    blade.castShadow = true;
+
+    // Glowing rune groove along blade
+    const fuller = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 1.7, 0.045),
+      new THREE.MeshBasicMaterial({ color: cfg.color })
+    );
+    fuller.position.y = 1.0;
+    blade.add(fuller);
+
+    swordGroup.add(pommel, grip, crossguard, blade);
+    guardian.add(swordGroup);
 
     return guardian;
   }
@@ -887,24 +966,112 @@ class TempleLevel {
     const group = new THREE.Group();
     group.position.set(x, y, z);
 
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 1.2, 8), this.matDarkBasalt);
+    // Carved stone pedestal base
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.85, 1.2, 12), this.matDarkBasalt);
     base.position.y = 0.6;
     base.castShadow = true;
+    base.receiveShadow = true;
     group.add(base);
 
-    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.4, 0.5, 12), this.matGoldTrim);
+    // Gold filigree band
+    const trim = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.06, 8, 20), this.matGoldTrim);
+    trim.rotation.x = Math.PI / 2;
+    trim.position.y = 1.15;
+    group.add(trim);
+
+    // Heavy bronze fire bowl
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.45, 0.55, 16), this.matGoldTrim);
     bowl.position.y = 1.35;
     bowl.castShadow = true;
     group.add(bowl);
 
-    const flameLight = new THREE.PointLight(0xff7722, 1.4, 12);
-    flameLight.position.set(0, 1.8, 0);
+    // Glowing charcoal / ember bed inside bowl
+    const emberBed = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.85, 0.75, 0.15, 16),
+      new THREE.MeshStandardMaterial({
+        color: 0xff3300,
+        emissive: 0xff2200,
+        emissiveIntensity: 2.2,
+        roughness: 0.5
+      })
+    );
+    emberBed.position.y = 1.55;
+    group.add(emberBed);
+
+    // Multi-tier Animated Fire Flame Cones
+    const flameGeo = new THREE.ConeGeometry(0.55, 1.4, 8, 1, true);
+    const flameMesh1 = new THREE.Mesh(flameGeo, this.matFlame);
+    flameMesh1.position.y = 2.1;
+    group.add(flameMesh1);
+
+    const flameMesh2 = new THREE.Mesh(new THREE.ConeGeometry(0.40, 1.1, 8, 1, true), this.matFlame);
+    flameMesh2.position.y = 2.2;
+    flameMesh2.rotation.y = Math.PI / 4;
+    group.add(flameMesh2);
+
+    // Dynamic Flickering Fire PointLight
+    const flameLight = new THREE.PointLight(0xff7722, 2.8, 18, 1.5);
+    flameLight.position.set(0, 2.3, 0);
+    flameLight.castShadow = true;
+    flameLight.shadow.bias = -0.002;
     group.add(flameLight);
 
+    // Rising Ember Sparks (Particles)
+    const sparkCount = 24;
+    const sparkGeo = new THREE.BufferGeometry();
+    const sparkPositions = new Float32Array(sparkCount * 3);
+    for (let i = 0; i < sparkCount * 3; i += 3) {
+      sparkPositions[i] = (Math.random() - 0.5) * 0.8;
+      sparkPositions[i + 1] = 1.8 + Math.random() * 1.6;
+      sparkPositions[i + 2] = (Math.random() - 0.5) * 0.8;
+    }
+    sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
+    const sparkMat = new THREE.PointsMaterial({
+      color: 0xffaa33,
+      size: 0.10,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending
+    });
+    const sparks = new THREE.Points(sparkGeo, sparkMat);
+    group.add(sparks);
+
     this.scene.add(group);
+
+    this.braziers.push({
+      group,
+      light: flameLight,
+      flame1: flameMesh1,
+      flame2: flameMesh2,
+      sparks: sparks,
+      sparkGeo: sparkGeo,
+      phase: Math.random() * 10
+    });
   }
 
   update(delta, time) {
+    // Animate crackling braziers & sparks
+    if (this.braziers) {
+      this.braziers.forEach(b => {
+        b.light.intensity = 2.4 + Math.sin(time * 14.0 + b.phase) * 0.45 + (Math.random() - 0.5) * 0.25;
+        b.flame1.scale.y = 1.0 + Math.sin(time * 16.0 + b.phase) * 0.15;
+        b.flame1.rotation.y += delta * 2.0;
+        b.flame2.scale.y = 1.0 + Math.cos(time * 18.0 + b.phase) * 0.18;
+        b.flame2.rotation.y -= delta * 2.5;
+
+        const pos = b.sparkGeo.attributes.position.array;
+        for (let i = 1; i < pos.length; i += 3) {
+          pos[i] += delta * (1.2 + Math.random() * 0.5);
+          if (pos[i] > 3.8) {
+            pos[i] = 1.6;
+            pos[i - 1] = (Math.random() - 0.5) * 0.7;
+            pos[i + 1] = (Math.random() - 0.5) * 0.7;
+          }
+        }
+        b.sparkGeo.attributes.position.needsUpdate = true;
+      });
+    }
+
     // Animate Key & Particle fountain
     if (this.keyGroup && !this.keyGroup.userData.collected) {
       this.keyGroup.rotation.y += delta * 1.6;

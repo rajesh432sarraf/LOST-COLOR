@@ -31,9 +31,9 @@ class PostProcessingManager {
       uBlueRestored: { value: 0.0 },      // 0.0 = Blue locked, 1.0 = Blue restored
       uBlueShockwaveRadius: { value: 0.0 },
       uBlueShockwaveCenter: { value: new THREE.Vector2(0.5, 0.5) },
-      uWorldSaturation: { value: 0.0 },   // 1.0 = Full rich color, 0.0 = Noir monochrome
-      uVignette: { value: 0.45 },
-      uContrast: { value: 1.15 },
+      uWorldSaturation: { value: 1.0 },   // 1.0 = Full rich color, 0.0 = Noir monochrome
+      uVignette: { value: 0.38 },
+      uContrast: { value: 1.10 },
       uTime: { value: 0.0 }
     };
 
