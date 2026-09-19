@@ -38,7 +38,7 @@ class PuzzleManager {
       cloud: false,
       rain: false,
       lake: false,
-      ocean: false
+      river: false
     };
     this.loadSavedClues();
 
@@ -357,20 +357,20 @@ class PuzzleManager {
   }
 
   // ==========================================
-  // Level 2: Water Realm Pillar Clues & Puzzle
+  // Level 2: Water Realm Ground Tablet Clues & Puzzle
   // ==========================================
 
   handleWaterPillarInteract(item) {
     if (!this.lake) return;
 
-    const pillarKey = item.id; // 'cloud', 'rain', 'lake', 'ocean'
-    const pillarData = this.lake.pillarConfigs[pillarKey];
-    if (!pillarData) return;
+    const tabletKey = item.id; // 'cloud', 'rain', 'lake', 'river'
+    const tabletData = (this.lake.tabletConfigs || this.lake.pillarConfigs)[tabletKey];
+    if (!tabletData) return;
 
     // Phase 1: Clue Inspection (if not all clues discovered yet)
     if (!this.allCluesDiscovered) {
       // Mark discovered
-      this.discoveredClues[pillarKey] = true;
+      this.discoveredClues[tabletKey] = true;
       this.saveClues();
 
       // Play discovery sound
@@ -378,9 +378,9 @@ class PuzzleManager {
         window.soundSystem.playClueDiscovered();
       }
 
-      // Open Pillar Clue Slate Modal
+      // Open Clue Slate Modal
       if (window.uiManager) {
-        window.uiManager.openClueModal(pillarData.name, pillarData.icon, pillarData.clue);
+        window.uiManager.openClueModal(tabletData.name, tabletData.icon, tabletData.clue);
       }
 
       // Check discovered count
@@ -393,12 +393,12 @@ class PuzzleManager {
         if (window.uiManager) {
           window.uiManager.completeQuestStep(0);
           window.uiManager.showNotification('✨ All 4 clues discovered! Puzzle is activated.');
-          window.uiManager.setObjective('Connect the symbols in the correct order: CLOUD ➔ RAIN ➔ LAKE ➔ OCEAN');
-          window.uiManager.showBanner('Connect the symbols in the correct order.');
+          window.uiManager.setObjective('Connect the ground tablets in the correct order: CLOUD ➔ RAIN ➔ LAKE ➔ RIVER');
+          window.uiManager.showBanner('Connect the ground tablets in the correct order.');
         }
       } else {
         if (window.uiManager) {
-          window.uiManager.setObjective(`Discovered ${count}/4 clues. Inspect the remaining ancient stone pillars.`);
+          window.uiManager.setObjective(`Discovered ${count}/4 clues. Inspect the remaining ground stone tablets.`);
         }
       }
       return;
@@ -407,21 +407,21 @@ class PuzzleManager {
     // Phase 2: Connection Mechanic (all 4 clues discovered)
     if (this.waterPuzzleSolved) return;
 
-    const expectedOrder = ['cloud', 'rain', 'lake', 'ocean'];
+    const expectedOrder = ['cloud', 'rain', 'lake', 'river'];
     const currentStepIndex = this.connectionSequence.length; // 0, 1, 2, 3
 
-    // Check if this pillar is already connected in this attempt
-    if (this.connectionSequence.includes(pillarKey)) {
+    // Check if this tablet is already connected in this attempt
+    if (this.connectionSequence.includes(tabletKey)) {
       if (window.uiManager) {
-        window.uiManager.showNotification(`⚠️ ${pillarData.icon} ${pillarKey.toUpperCase()} is already connected.`);
+        window.uiManager.showNotification(`⚠️ ${tabletData.icon} ${tabletKey.toUpperCase()} is already connected.`);
       }
       return;
     }
 
     // Check if player clicked the correct next symbol
-    if (pillarKey === expectedOrder[currentStepIndex]) {
+    if (tabletKey === expectedOrder[currentStepIndex]) {
       // Correct connection!
-      this.connectionSequence.push(pillarKey);
+      this.connectionSequence.push(tabletKey);
       const newStep = this.connectionSequence.length;
 
       // Visual and audio effects
@@ -432,7 +432,7 @@ class PuzzleManager {
       }
 
       if (window.uiManager) {
-        window.uiManager.showNotification(`✨ Connected: ${pillarData.icon} ${pillarKey.toUpperCase()} (${newStep}/4)`);
+        window.uiManager.showNotification(`✨ Connected: ${tabletData.icon} ${tabletKey.toUpperCase()} (${newStep}/4)`);
       }
 
       // Check if complete sequence reached
@@ -442,7 +442,7 @@ class PuzzleManager {
         if (window.uiManager) {
           window.uiManager.completeQuestStep(1);
           window.uiManager.showNotification('🌊 The Water Cycle is Complete! The Lake awakens.');
-          window.uiManager.setObjective('The Water Cycle is restored! Witness the Water Crystal emerge.');
+          window.uiManager.setObjective('The Water Cycle is restored! The ground cracks open at the center.');
         }
 
         // Trigger cinematic reveal
@@ -450,7 +450,7 @@ class PuzzleManager {
           this.lake.triggerCrystalRevealCinematic();
           if (window.uiManager) {
             window.uiManager.completeQuestStep(2);
-            window.uiManager.setObjective('The Blue Water Crystal is revealed! Approach the altar and collect it.');
+            window.uiManager.setObjective('The Blue Water Crystal has emerged! Approach the center and collect it.');
           }
         }, 1200);
       }

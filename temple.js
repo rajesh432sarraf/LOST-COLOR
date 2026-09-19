@@ -147,33 +147,6 @@ class TempleLevel {
     this.sunLight.shadow.camera.bottom = -45;
     this.sunLight.shadow.bias = -0.0008;
     this.scene.add(this.sunLight);
-
-    // Volumetric Sunlight Beams
-    const beamGeo = new THREE.CylinderGeometry(0.8, 4.5, 32, 16, 1, true);
-    const beamMat = new THREE.MeshBasicMaterial({
-      color: 0xfffae8,
-      transparent: true,
-      opacity: 0.13,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending
-    });
-
-    const beamPositions = [
-      { x: -10, y: 16, z: 28, rx: 0.4, rz: -0.25 },
-      { x: 10, y: 16, z: 28, rx: 0.4, rz: -0.25 },
-      { x: 0, y: 18, z: 20, rx: 0.45, rz: -0.28 },
-      { x: 0, y: 18, z: -15, rx: 0.35, rz: -0.15 },
-      { x: 0, y: 20, z: -65, rx: 0.15, rz: 0.0 }
-    ];
-
-    beamPositions.forEach(b => {
-      const beam = new THREE.Mesh(beamGeo, beamMat);
-      beam.position.set(b.x, b.y, b.z);
-      beam.rotation.x = b.rx;
-      beam.rotation.z = b.rz;
-      this.scene.add(beam);
-    });
   }
 
   buildSkyAndAtmosphere() {

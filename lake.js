@@ -1,24 +1,25 @@
 /**
- * lake.js - Level 2: "WATER REALM - The Dried Lake"
- * Completely dedicated open-world dried lake environment.
- * Zero temple assets, zero dungeon assets, zero ancient ruins, zero fire assets.
+ * lake.js - Level 2: "WATER REALM – THE DRIED LAKE"
+ * Completely dedicated open dried lake environment.
  * 
- * Features:
- * - Vast cracked lake bed with detailed dry earth textures and bright daylight atmosphere.
- * - Scattered rocks, natural stone formations, boundary dead trees, distant mountains.
- * - Guided navigation: circular pathway, natural stone walking paths, wooden direction signs,
- *   soft blue guiding ground lights, invisible map boundary colliders.
- * - Central Main Puzzle: Large circular stone platform with 4 Ancient Stone Pillars:
- *   Pillar 1: ☁️ CLOUD
- *   Pillar 2: 🌧️ RAIN
- *   Pillar 3: 🏞️ LAKE
- *   Pillar 4: 🌊 OCEAN
- * - Pillar inspection with clues, clue discovery tracker, and auto-save.
- * - Puzzle activation mode and symbol connection mechanic (CLOUD ➔ RAIN ➔ LAKE ➔ OCEAN).
- * - Blue energy traveling between stones, water particles, rising stone pathway, activating rune lights, water SFX.
- * - Red flash error feedback on wrong order (resets attempt without resetting clues).
- * - Cinematic crystal reveal cutscene: ground trembles, illuminating cracks, converging energy, rising Blue Water Crystal.
- * - Crystal collection interaction with flight animation, radial water pulse wave, +200 score, and Level 2 Complete screen.
+ * Strict Design Specifications:
+ * - NO temples, NO fire theme, NO ruins, NO pillars, NO towers, NO vertical structures.
+ * - NO elevated platforms. Flat playable terrain (y = 0.0).
+ * - Large open dried lake bed with detailed cracked dry ground textures.
+ * - Center area is completely open.
+ * - Distant mountains encircling the horizon.
+ * - Small rocks only around the edges.
+ * - Dead weathered trees only at far outer boundaries.
+ * - Bright daylight with light blue atmosphere.
+ * - 4 Stone Tablets placed DIRECTLY ON THE GROUND arranged in a large circle:
+ *     Stone 1: ☁️ CLOUD ("Water begins its journey in the sky.")
+ *     Stone 2: 🌧️ RAIN  ("Clouds release water back to the earth.")
+ *     Stone 3: 🏞️ LAKE  ("Rainwater gathers and forms lakes.")
+ *     Stone 4: 🌊 RIVER ("Water flows through rivers and continues the cycle.")
+ * - Player movement: Walkable route, cannot get stuck, cannot fall into gaps, cannot walk through walls or leave map.
+ * - Puzzle: Connect CLOUD ➔ RAIN ➔ LAKE ➔ RIVER.
+ * - FX: Blue glowing ground paths, water particles, ground energy effects.
+ * - Crystal Reveal: Center of dried lake cracks open, blue light emerges, glowing Blue Water Crystal rises.
  */
 
 class LakeLevel {
@@ -29,169 +30,171 @@ class LakeLevel {
 
     this.colliders = [];
     this.interactables = [];
-    this.guidingLights = [];
     this.animatedChannels = [];
-    this.risingPaths = [];
+    this.fissurePlates = [];
+    this.waterParticlesSystems = [];
 
     // Puzzle connection state
-    this.connectionStep = 0; // 0: None, 1: Cloud, 2: Rain, 3: Lake, 4: Ocean (Solved)
-    this.connectedPillars = [];
+    this.connectionStep = 0; // 0: None, 1: Cloud, 2: Rain, 3: Lake, 4: River (Solved)
+    this.connectedTablets = [];
     this.puzzleSolved = false;
     this.crystalRevealed = false;
     this.crystalCollected = false;
 
-    // Cinematic state
+    // Cinematic & Reveal state
     this.cutsceneActive = false;
     this.cutsceneTimer = 0;
+    this.fissureCrackProgress = 0.0; // 0.0 closed to 1.0 fully cracked open
 
-    // Water pulse wave
+    // Radial water pulse wave
     this.pulseMesh = null;
     this.pulseRadius = 0;
     this.pulseActive = false;
 
-    // References
-    this.pillars = {};
-    this.pillarOrder = ['cloud', 'rain', 'lake', 'ocean'];
-    this.pillarConfigs = {
-      cloud: { id: 'cloud', name: 'Cloud Pillar', icon: '☁️', pos: new THREE.Vector3(0, 0, -8.8), clue: 'Water begins its journey in the sky.' },
-      rain: { id: 'rain', name: 'Rain Pillar', icon: '🌧️', pos: new THREE.Vector3(8.8, 0, 0), clue: 'Clouds release water back to the earth.' },
-      lake: { id: 'lake', name: 'Lake Pillar', icon: '🏞️', pos: new THREE.Vector3(0, 0, 8.8), clue: 'Rainwater gathers and forms lakes.' },
-      ocean: { id: 'ocean', name: 'Ocean Pillar', icon: '🌊', pos: new THREE.Vector3(-8.8, 0, 0), clue: 'All waters eventually return to the ocean.' }
+    // 4 Ground Stone Tablet Configurations
+    // Arranged in a circle of radius 14m on the flat lake bed:
+    // Cloud (North: 0, 0, -14)
+    // Rain  (East:  14, 0, 0)
+    // Lake  (South: 0, 0, 14)
+    // River (West: -14, 0, 0)
+    this.tablets = {};
+    this.tabletOrder = ['cloud', 'rain', 'lake', 'river'];
+    this.tabletConfigs = {
+      cloud: {
+        id: 'cloud',
+        name: 'Cloud Tablet',
+        icon: '☁️',
+        pos: new THREE.Vector3(0, 0.04, -14.0),
+        clue: 'Water begins its journey in the sky.'
+      },
+      rain: {
+        id: 'rain',
+        name: 'Rain Tablet',
+        icon: '🌧️',
+        pos: new THREE.Vector3(14.0, 0.04, 0),
+        clue: 'Clouds release water back to the earth.'
+      },
+      lake: {
+        id: 'lake',
+        name: 'Lake Tablet',
+        icon: '🏞️',
+        pos: new THREE.Vector3(0, 0.04, 14.0),
+        clue: 'Rainwater gathers and forms lakes.'
+      },
+      river: {
+        id: 'river',
+        name: 'River Tablet',
+        icon: '🌊',
+        pos: new THREE.Vector3(-14.0, 0.04, 0),
+        clue: 'Water flows through rivers and continues the cycle.'
+      }
     };
+
+    // Backward-compatibility alias for puzzle manager references
+    this.pillarConfigs = this.tabletConfigs;
+    this.pillars = this.tablets;
 
     this.initMaterials();
     this.buildLighting();
     this.buildAtmosphere();
     this.buildDryLakeBed();
     this.buildDistantMountains();
-    this.buildNaturalFormations();
+    this.buildEdgeRocks();
     this.buildBoundaryDeadTrees();
-    this.buildPlayerGuidance();
-    this.buildCentralCircularPlatform();
-    this.buildFourStonePillars();
-    this.buildEnergyChannels();
-    this.buildCentralAltarAndCrystal();
+    this.buildFourGroundStoneTablets();
+    this.buildGroundEnergyChannels();
+    this.buildCenterCrackingFissureAndCrystal();
     this.buildWindParticles();
     this.buildMapBoundaries();
   }
 
   initMaterials() {
-    // High-fidelity procedural textures
+    // 1. Cracked dry ground texture
     const crackedTex = window.textureGen.getCrackedEarth(512, 512);
-    crackedTex.repeat.set(16, 16);
+    crackedTex.repeat.set(24, 24);
 
+    // 2. Weathered basalt / slate stone texture for flat tablets
     const stoneTex = window.textureGen.getAncientStone(512, 512);
-    stoneTex.repeat.set(4, 4);
+    stoneTex.repeat.set(2, 2);
 
-    const floorTex = window.textureGen.getTempleFloor(512, 512);
-    floorTex.repeat.set(2, 2);
-
-    // Dry lake bed cracked earth
     this.matLakeBed = new THREE.MeshStandardMaterial({
       map: crackedTex,
       roughness: 0.94,
-      metalness: 0.04,
-      color: 0x8a847c // Warm dry earth tone
+      metalness: 0.02,
+      color: 0x8b857d // Warm dry earth tone
     });
 
-    // Natural stone formations & boulders
+    this.matStoneTablet = new THREE.MeshStandardMaterial({
+      map: stoneTex,
+      roughness: 0.82,
+      metalness: 0.12,
+      color: 0x3d434d // Dark ancient slate stone
+    });
+
+    this.matTabletRim = new THREE.MeshStandardMaterial({
+      roughness: 0.75,
+      metalness: 0.25,
+      color: 0x2a303a
+    });
+
     this.matRock = new THREE.MeshStandardMaterial({
       map: stoneTex,
-      roughness: 0.88,
-      metalness: 0.06,
-      color: 0x6e6d72
+      roughness: 0.9,
+      metalness: 0.05,
+      color: 0x62666d
     });
 
-    // Circular stone platform
-    this.matPlatform = new THREE.MeshStandardMaterial({
-      map: floorTex,
-      roughness: 0.76,
-      metalness: 0.1,
-      color: 0x7e8692
-    });
-
-    // Weathered dead tree wood
     this.matDeadWood = new THREE.MeshStandardMaterial({
-      color: 0x3a332a,
-      roughness: 0.95,
+      color: 0x383127,
+      roughness: 0.96,
       metalness: 0.02
     });
 
-    // Wooden direction signs
-    this.matSignWood = new THREE.MeshStandardMaterial({
-      color: 0x564734,
-      roughness: 0.85,
-      metalness: 0.05
-    });
-
-    // Soft faint blue pillar rune
-    this.matPillarRune = new THREE.MeshStandardMaterial({
-      color: 0x48b6ff,
-      emissive: 0x0077dd,
-      emissiveIntensity: 0.8,
-      roughness: 0.25,
-      metalness: 0.3
-    });
-
-    // Activated energetic blue channel material
+    // Glowing ground conduit material
     this.matEnergyConduit = new THREE.MeshStandardMaterial({
       color: 0x00e1ff,
-      emissive: 0x0099ff,
-      emissiveIntensity: 0.1, // Dormant initially
-      roughness: 0.15,
+      emissive: 0x0088ee,
+      emissiveIntensity: 0.12,
+      roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.65
     });
-
-    // Guiding blue lights
-    this.matGuidingLantern = new THREE.MeshStandardMaterial({
-      color: 0x7ad7ff,
-      emissive: 0x00b4ff,
-      emissiveIntensity: 2.2,
-      roughness: 0.1,
-      metalness: 0.9
-    });
   }
 
   buildLighting() {
-    // Bright daylight atmosphere
-    this.ambientLight = new THREE.AmbientLight(0xc2d6e8, 0.95);
+    // Bright natural daylight
+    this.ambientLight = new THREE.AmbientLight(0xcde1f2, 1.05);
     this.group.add(this.ambientLight);
 
-    // Directional Sun Light
-    this.dirLight = new THREE.DirectionalLight(0xfff6e5, 1.3);
-    this.dirLight.position.set(45, 90, 35);
+    // Directional Sun Light casting crisp ground shadows
+    this.dirLight = new THREE.DirectionalLight(0xfff6e8, 1.45);
+    this.dirLight.position.set(40, 85, 30);
     this.dirLight.castShadow = true;
     this.dirLight.shadow.mapSize.width = 2048;
     this.dirLight.shadow.mapSize.height = 2048;
     this.dirLight.shadow.camera.near = 1;
-    this.dirLight.shadow.camera.far = 300;
-    const d = 90;
+    this.dirLight.shadow.camera.far = 280;
+    const d = 85;
     this.dirLight.shadow.camera.left = -d;
     this.dirLight.shadow.camera.right = d;
     this.dirLight.shadow.camera.top = d;
     this.dirLight.shadow.camera.bottom = -d;
-    this.dirLight.shadow.bias = -0.0003;
+    this.dirLight.shadow.bias = -0.0004;
     this.group.add(this.dirLight);
 
-    // Faint atmospheric blue skylight fill
-    this.skyFill = new THREE.DirectionalLight(0x6bb3e8, 0.45);
-    this.skyFill.position.set(-30, 60, -40);
+    // Soft sky fill light
+    this.skyFill = new THREE.DirectionalLight(0x75bfe8, 0.45);
+    this.skyFill.position.set(-35, 55, -35);
     this.group.add(this.skyFill);
-
-    // Central Sanctuary Beacon
-    this.centerBeacon = new THREE.PointLight(0x00aaff, 2.0, 45, 1.4);
-    this.centerBeacon.position.set(0, 3.2, 0);
-    this.group.add(this.centerBeacon);
   }
 
   buildAtmosphere() {
-    // Clean bright daylight sky with light atmospheric blue fog
+    // Bright daylight with light blue atmosphere
     this.scene.fog = new THREE.FogExp2(0x94b4c8, 0.0065);
     this.scene.background = new THREE.Color(0xa2bed4);
 
-    // Sky Dome
+    // Light blue sky dome
     const skyGeo = new THREE.SphereGeometry(260, 32, 16);
     const skyMat = new THREE.MeshBasicMaterial({
       color: 0x90b5cf,
@@ -201,26 +204,43 @@ class LakeLevel {
   }
 
   buildDryLakeBed() {
-    // Vast flat cracked lake bed at y = 0.0
+    // Large, flat open circular dried lake bed at y = 0.0
+    // Perfectly flat so player can never get stuck or fall into gaps
     const bedGeo = new THREE.PlaneGeometry(280, 280);
     const bedMesh = new THREE.Mesh(bedGeo, this.matLakeBed);
     bedMesh.rotation.x = -Math.PI / 2;
     bedMesh.position.y = 0.0;
     bedMesh.receiveShadow = true;
     this.group.add(bedMesh);
+
+    // Faint natural dried lake rim ring on ground (radius 18m) framing the wide circle
+    const ringGeo = new THREE.RingGeometry(17.4, 18.2, 64);
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: 0x7a746c,
+      roughness: 0.95,
+      metalness: 0.02,
+      transparent: true,
+      opacity: 0.65
+    });
+    const lakeRing = new THREE.Mesh(ringGeo, ringMat);
+    lakeRing.rotation.x = -Math.PI / 2;
+    lakeRing.position.y = 0.01;
+    lakeRing.receiveShadow = true;
+    this.group.add(lakeRing);
   }
 
   buildDistantMountains() {
+    // Distant mountain ridges encircling the horizon far from playable area (r ~ 130m)
     const mountainGroup = new THREE.Group();
-    const count = 22;
+    const count = 24;
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-      const dist = 125 + ((i * 13) % 25);
+      const dist = 125 + ((i * 17) % 22);
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
 
-      const h = 40 + ((i * 7) % 30);
-      const r = 24 + ((i * 5) % 18);
+      const h = 38 + ((i * 7) % 28);
+      const r = 22 + ((i * 5) % 16);
 
       const mGeo = new THREE.ConeGeometry(r, h, 6);
       const mMesh = new THREE.Mesh(mGeo, this.matRock);
@@ -231,27 +251,27 @@ class LakeLevel {
     this.group.add(mountainGroup);
   }
 
-  buildNaturalFormations() {
-    // Natural stone formations & small scattered rocks around the dried lake
-    const rockClusters = [
-      { x: -28, z: 22, s: 1.4 }, { x: -34, z: 26, s: 0.9 }, { x: -25, z: 18, s: 0.7 },
-      { x: 30, z: 24, s: 1.6 }, { x: 36, z: 28, s: 1.1 }, { x: 26, z: 30, s: 0.8 },
-      { x: -32, z: -25, s: 1.8 }, { x: -26, z: -32, s: 1.2 }, { x: -38, z: -20, s: 0.8 },
-      { x: 28, z: -26, s: 1.5 }, { x: 34, z: -22, s: 1.0 }, { x: 32, z: -34, s: 0.9 },
-      { x: -18, z: -44, s: 2.2 }, { x: 18, z: -46, s: 2.0 },
-      { x: -48, z: 0, s: 2.5 }, { x: 48, z: 0, s: 2.4 }
+  buildEdgeRocks() {
+    // Small rocks located strictly around edges (radius 50m to 70m)
+    // Center area (radius < 20m) remains completely open!
+    const rockPositions = [
+      { x: -48, z: 24, s: 1.1 }, { x: -54, z: 28, s: 0.8 }, { x: -44, z: 38, s: 0.9 },
+      { x: 46, z: 26, s: 1.2 },  { x: 52, z: 32, s: 0.8 }, { x: 42, z: 42, s: 0.7 },
+      { x: -48, z: -28, s: 1.3 }, { x: -42, z: -44, s: 1.0 }, { x: -55, z: -20, s: 0.7 },
+      { x: 48, z: -26, s: 1.2 },  { x: 42, z: -46, s: 0.9 }, { x: 54, z: -22, s: 0.8 },
+      { x: 0, z: -62, s: 1.4 },   { x: -16, z: -60, s: 1.0 }, { x: 18, z: -58, s: 0.9 },
+      { x: 0, z: 62, s: 1.4 },    { x: -18, z: 58, s: 1.1 },  { x: 20, z: 60, s: 0.9 }
     ];
 
-    rockClusters.forEach(cfg => {
+    rockPositions.forEach(cfg => {
       const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(cfg.s, 1), this.matRock);
-      rock.position.set(cfg.x, cfg.s * 0.55, cfg.z);
+      rock.position.set(cfg.x, cfg.s * 0.48, cfg.z);
       rock.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
       rock.castShadow = true;
       rock.receiveShadow = true;
       this.group.add(rock);
 
-      // Colliders for larger formations
-      if (cfg.s >= 1.2) {
+      if (cfg.s >= 1.0) {
         this.colliders.push({
           type: 'box',
           box: new THREE.Box3().setFromObject(rock)
@@ -259,43 +279,43 @@ class LakeLevel {
       }
     });
 
-    // Tiny scattered pebbles across the bed
-    for (let i = 0; i < 60; i++) {
+    // Small pebbles scattered near boundaries
+    for (let i = 0; i < 40; i++) {
       const a = Math.random() * Math.PI * 2;
-      const r = 12 + Math.random() * 55;
+      const r = 40 + Math.random() * 32;
       const px = Math.cos(a) * r;
       const pz = Math.sin(a) * r;
-      const pebble = new THREE.Mesh(new THREE.DodecahedronGeometry(0.25 + Math.random() * 0.25), this.matRock);
-      pebble.position.set(px, 0.12, pz);
+      const pebble = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2 + Math.random() * 0.2), this.matRock);
+      pebble.position.set(px, 0.08, pz);
       pebble.receiveShadow = true;
       this.group.add(pebble);
     }
   }
 
   buildBoundaryDeadTrees() {
-    // Weathered dead trees near boundaries
+    // Dead weathered trees located ONLY at far boundaries (radius 62m to 72m)
     const treePositions = [
-      [-52, 28], [-44, 46], [42, 45], [54, 26],
-      [-56, -22], [-42, -50], [40, -48], [55, -24],
-      [-22, 58], [24, 58], [-20, -60], [22, -62]
+      [-58, 30], [-48, 52], [48, 50], [60, 28],
+      [-62, -24], [-46, -56], [46, -54], [62, -26],
+      [-26, 64], [28, 64], [-24, -66], [26, -68]
     ];
 
     treePositions.forEach(([tx, tz], idx) => {
       const tree = new THREE.Group();
       tree.position.set(tx, 0, tz);
 
-      const h = 5.2 + (idx % 3) * 0.9;
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.48, h, 6), this.matDeadWood);
+      const h = 4.8 + (idx % 3) * 0.8;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.44, h, 6), this.matDeadWood);
       trunk.position.y = h / 2;
       trunk.castShadow = true;
       tree.add(trunk);
 
-      // 3 gnarled bare branches
-      [0.2, 2.2, 4.3].forEach(a => {
-        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.16, 2.8, 5), this.matDeadWood);
-        b.position.set(Math.cos(a) * 0.6, h * 0.72, Math.sin(a) * 0.6);
-        b.rotation.z = Math.cos(a) * 0.7;
-        b.rotation.x = Math.sin(a) * 0.7;
+      // Bare gnarled branches
+      [0.3, 2.4, 4.5].forEach(a => {
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.14, 2.5, 5), this.matDeadWood);
+        b.position.set(Math.cos(a) * 0.5, h * 0.72, Math.sin(a) * 0.5);
+        b.rotation.z = Math.cos(a) * 0.65;
+        b.rotation.x = Math.sin(a) * 0.65;
         b.castShadow = true;
         tree.add(b);
       });
@@ -305,225 +325,78 @@ class LakeLevel {
       this.colliders.push({
         type: 'box',
         box: new THREE.Box3(
-          new THREE.Vector3(tx - 0.9, 0, tz - 0.9),
-          new THREE.Vector3(tx + 0.9, 5.5, tz + 0.9)
+          new THREE.Vector3(tx - 0.8, 0, tz - 0.8),
+          new THREE.Vector3(tx + 0.8, 5.0, tz + 0.8)
         )
       });
     });
   }
 
-  buildPlayerGuidance() {
-    // 1. Clearly visible Circular Pathway around the central platform (radius 13.5m)
-    const circlePathGeo = new THREE.RingGeometry(12.6, 14.8, 48);
-    const circlePathMat = new THREE.MeshStandardMaterial({
-      color: 0x6a6660,
-      roughness: 0.92,
-      metalness: 0.05
-    });
-    const circlePath = new THREE.Mesh(circlePathGeo, circlePathMat);
-    circlePath.rotation.x = -Math.PI / 2;
-    circlePath.position.y = 0.02;
-    circlePath.receiveShadow = true;
-    this.group.add(circlePath);
+  buildFourGroundStoneTablets() {
+    // Four Stone Tablets placed DIRECTLY ON THE GROUND arranged in a large circle (radius 14.0m)
+    // NO PILLARS, NO TOWERS, NO VERTICAL OBSTACLES, NO ELEVATED PLATFORMS!
+    // The player simply walks up to them on the flat cracked earth.
+    //
+    // Stone 1: ☁️ CLOUD (North: 0, 0, -14.0)
+    // Stone 2: 🌧️ RAIN  (East:  14.0, 0, 0)
+    // Stone 3: 🏞️ LAKE  (South: 0, 0, 14.0)
+    // Stone 4: 🌊 RIVER (West: -14.0, 0, 0)
 
-    // 2. Natural stone walking paths leading from southern spawn point (0, 0, 32) to central platform
-    const pathGroup = new THREE.Group();
-    for (let z = 14.5; z <= 32.0; z += 1.8) {
-      const stepW = 2.4 + Math.sin(z) * 0.2;
-      const stepL = 1.3;
-      const step = new THREE.Mesh(new THREE.BoxGeometry(stepW, 0.06, stepL), this.matPlatform);
-      step.position.set((Math.sin(z * 0.8) * 0.15), 0.03, z);
-      step.receiveShadow = true;
-      pathGroup.add(step);
-    }
-    this.group.add(pathGroup);
+    Object.keys(this.tabletConfigs).forEach(key => {
+      const cfg = this.tabletConfigs[key];
+      const tGroup = new THREE.Group();
+      tGroup.position.set(cfg.pos.x, 0, cfg.pos.z);
 
-    // 3. Weathered wooden direction signs pointing toward the main puzzle
-    this.createDirectionSign(0, 30.5, 0.0, '➔ WATER SANCTUARY');
-    this.createDirectionSign(-15.5, 14.0, 0.7, '➔ CENTRAL ALTAR');
-    this.createDirectionSign(15.5, 14.0, -0.7, '➔ CENTRAL ALTAR');
+      // 1. Flat Carved Slate Ground Tablet (height: 0.06m, flush on ground)
+      const tabletGeo = new THREE.BoxGeometry(2.4, 0.06, 2.4);
+      const tabletMesh = new THREE.Mesh(tabletGeo, this.matStoneTablet);
+      tabletMesh.position.y = 0.03;
+      tabletMesh.receiveShadow = true;
+      tabletMesh.castShadow = true;
+      tGroup.add(tabletMesh);
 
-    // 4. Soft blue guiding lights along the pathways
-    const lanternPositions = [
-      [1.6, 28], [-1.6, 28],
-      [1.6, 21], [-1.6, 21],
-      [1.6, 15], [-1.6, 15],
-      // Around circular path
-      [13.8, 0], [-13.8, 0],
-      [0, -13.8], [9.8, 9.8], [-9.8, 9.8],
-      [9.8, -9.8], [-9.8, -9.8]
-    ];
+      // 2. Chamfered outer stone rim border
+      const rimGeo = new THREE.RingGeometry(1.65, 1.85, 32);
+      const rimMesh = new THREE.Mesh(rimGeo, this.matTabletRim);
+      rimMesh.rotation.x = -Math.PI / 2;
+      rimMesh.position.y = 0.062;
+      rimMesh.receiveShadow = true;
+      tGroup.add(rimMesh);
 
-    lanternPositions.forEach(([lx, lz]) => {
-      const post = new THREE.Group();
-      post.position.set(lx, 0, lz);
-
-      // Wooden stake
-      const stake = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.75, 6), this.matSignWood);
-      stake.position.y = 0.38;
-      stake.castShadow = true;
-      post.add(stake);
-
-      // Glowing blue luminescent crystal lantern
-      const lantern = new THREE.Mesh(new THREE.OctahedronGeometry(0.18, 0), this.matGuidingLantern);
-      lantern.position.y = 0.82;
-      post.add(lantern);
-
-      // Soft blue point light
-      const light = new THREE.PointLight(0x0099ff, 0.85, 6.5, 1.8);
-      light.position.y = 0.85;
-      post.add(light);
-      this.guidingLights.push(light);
-
-      this.group.add(post);
-    });
-  }
-
-  createDirectionSign(x, z, rotY, text) {
-    const signGroup = new THREE.Group();
-    signGroup.position.set(x, 0, z);
-    signGroup.rotation.y = rotY;
-
-    // Wooden post
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 2.0, 6), this.matSignWood);
-    post.position.y = 1.0;
-    post.castShadow = true;
-    signGroup.add(post);
-
-    // Direction board with carved arrow
-    const board = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 0.1), this.matSignWood);
-    board.position.set(0, 1.75, 0.1);
-    board.castShadow = true;
-    signGroup.add(board);
-
-    // Direction label canvas
-    const { canvas, ctx } = window.textureGen.createCanvas(256, 64);
-    ctx.fillStyle = '#4a3d2e';
-    ctx.fillRect(0, 0, 256, 64);
-    ctx.fillStyle = '#00e1ff';
-    ctx.font = 'bold 20px "Cinzel", Georgia, serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, 128, 32);
-
-    const labelTex = new THREE.CanvasTexture(canvas);
-    const labelMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.5, 0.4),
-      new THREE.MeshBasicMaterial({ map: labelTex, transparent: true })
-    );
-    labelMesh.position.set(0, 1.75, 0.16);
-    signGroup.add(labelMesh);
-
-    this.group.add(signGroup);
-
-    this.colliders.push({
-      type: 'box',
-      box: new THREE.Box3(
-        new THREE.Vector3(x - 0.6, 0, z - 0.6),
-        new THREE.Vector3(x + 0.6, 2.2, z + 0.6)
-      )
-    });
-  }
-
-  buildCentralCircularPlatform() {
-    // Large circular stone platform at center (radius 12m, height 0.25m)
-    const platformGroup = new THREE.Group();
-    platformGroup.position.set(0, 0, 0);
-
-    // 1. Raised Stone Dais
-    const dais = new THREE.Mesh(
-      new THREE.CylinderGeometry(11.8, 12.2, 0.25, 48),
-      this.matPlatform
-    );
-    dais.position.y = 0.125;
-    dais.receiveShadow = true;
-    platformGroup.add(dais);
-
-    // 2. Concentric Engraved Rune Rings
-    this.runeRingOuter = new THREE.Mesh(
-      new THREE.RingGeometry(10.2, 10.9, 48),
-      new THREE.MeshStandardMaterial({
-        color: 0x00aaff,
-        emissive: 0x0077dd,
-        emissiveIntensity: 0.35,
-        roughness: 0.3,
-        metalness: 0.4
-      })
-    );
-    this.runeRingOuter.rotation.x = -Math.PI / 2;
-    this.runeRingOuter.position.y = 0.26;
-    platformGroup.add(this.runeRingOuter);
-
-    this.runeRingInner = new THREE.Mesh(
-      new THREE.RingGeometry(5.2, 5.8, 36),
-      new THREE.MeshStandardMaterial({
-        color: 0x00c8ff,
-        emissive: 0x0088ee,
-        emissiveIntensity: 0.45,
-        roughness: 0.3,
-        metalness: 0.4
-      })
-    );
-    this.runeRingInner.rotation.x = -Math.PI / 2;
-    this.runeRingInner.position.y = 0.26;
-    platformGroup.add(this.runeRingInner);
-
-    this.group.add(platformGroup);
-  }
-
-  buildFourStonePillars() {
-    // 4 Ancient Stone Pillars placed evenly around the circular platform (radius 8.8m)
-    // Pillar 1: ☁️ CLOUD (North: 0, 0, -8.8)
-    // Pillar 2: 🌧️ RAIN  (East:  8.8, 0, 0)
-    // Pillar 3: 🏞️ LAKE  (South: 0, 0, 8.8)
-    // Pillar 4: 🌊 OCEAN (West:  -8.8, 0, 0)
-
-    Object.keys(this.pillarConfigs).forEach(key => {
-      const cfg = this.pillarConfigs[key];
-      const pGroup = new THREE.Group();
-      pGroup.position.copy(cfg.pos);
-
-      // Plinth Base
-      const plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.5, 0.4, 8), this.matPlatform);
-      plinth.position.y = 0.2;
-      plinth.receiveShadow = true;
-      pGroup.add(plinth);
-
-      // Carved Monolithic Stone Pillar
-      const shaft = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.4, 0.8), this.matRock);
-      shaft.position.y = 1.9;
-      shaft.castShadow = true;
-      shaft.receiveShadow = true;
-      pGroup.add(shaft);
-
-      // Pillar Head Cap
-      const cap = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 1.0), this.matRock);
-      cap.position.y = 3.65;
-      cap.castShadow = true;
-      pGroup.add(cap);
-
-      // Carved Symbol Face Plate (faces center 0,0,0)
-      const lookAngle = Math.atan2(-cfg.pos.x, -cfg.pos.z);
-      const symbolGroup = new THREE.Group();
-      symbolGroup.rotation.y = lookAngle;
-
-      const { canvas, ctx } = window.textureGen.createCanvas(256, 256);
+      // 3. High-definition Symbol & Glyph Inscription on top surface of tablet
+      const { canvas, ctx } = window.textureGen.createCanvas(512, 512);
+      // Slate background
       ctx.fillStyle = '#1c222c';
-      ctx.fillRect(0, 0, 256, 256);
-      ctx.strokeStyle = '#00a2ff';
-      ctx.lineWidth = 6;
-      ctx.strokeRect(10, 10, 236, 236);
+      ctx.fillRect(0, 0, 512, 512);
 
-      // Draw Emoji / Icon
-      ctx.font = '96px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+      // Carved concentric circular rune border
+      ctx.strokeStyle = '#00a2ff';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(256, 256, 226, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(256, 256, 206, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Emoji Symbol Icon
+      ctx.font = '160px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(cfg.icon, 128, 110);
+      ctx.fillText(cfg.icon, 256, 210);
 
-      // Label
+      // Carved Rune Title
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 30px "Cinzel", Georgia, serif';
-      ctx.fillText(key.toUpperCase(), 128, 195);
+      ctx.font = 'bold 50px "Cinzel", Georgia, serif';
+      ctx.fillText(key.toUpperCase(), 256, 375);
+
+      // Subtitle
+      ctx.fillStyle = '#7ad7ff';
+      ctx.font = 'bold 24px "Cinzel", Georgia, serif';
+      ctx.fillText('WATER CYCLE', 256, 430);
 
       const symTex = new THREE.CanvasTexture(canvas);
       const symMat = new THREE.MeshStandardMaterial({
@@ -531,78 +404,72 @@ class LakeLevel {
         roughness: 0.35,
         metalness: 0.2,
         emissive: 0x0088ee,
-        emissiveIntensity: 0.7
+        emissiveIntensity: 0.6
       });
-      const symMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), symMat);
-      symMesh.position.set(0, 2.1, 0.42);
-      symbolGroup.add(symMesh);
-      pGroup.add(symbolGroup);
+      const symMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.1), symMat);
+      symMesh.rotation.x = -Math.PI / 2;
+      symMesh.position.y = 0.065; // Lying flat directly on top of the stone slab
+      symMesh.receiveShadow = true;
+      tGroup.add(symMesh);
 
-      // Soft faint blue point light on each pillar
-      const pLight = new THREE.PointLight(0x0099ff, 1.2, 9, 1.8);
-      pLight.position.set(0, 2.4, 0);
-      pGroup.add(pLight);
+      // 4. Soft faint blue ambient point light hovering above the tablet
+      const tLight = new THREE.PointLight(0x00aaff, 1.2, 8.0, 1.8);
+      tLight.position.set(0, 0.45, 0);
+      tGroup.add(tLight);
 
-      // Glowing rune ring on ground at pillar base
+      // 5. Glowing ground rune ring on the cracked earth surrounding the tablet
       const auraMat = new THREE.MeshBasicMaterial({
         color: 0x00a2ff,
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.35
       });
-      const aura = new THREE.Mesh(new THREE.RingGeometry(1.4, 1.8, 16), auraMat);
+      const aura = new THREE.Mesh(new THREE.RingGeometry(1.85, 2.4, 32), auraMat);
       aura.rotation.x = -Math.PI / 2;
-      aura.position.y = 0.26;
-      pGroup.add(aura);
+      aura.position.y = 0.015;
+      tGroup.add(aura);
 
-      this.group.add(pGroup);
+      this.group.add(tGroup);
 
-      // Pillar Collider
-      this.colliders.push({
-        type: 'box',
-        box: new THREE.Box3(
-          new THREE.Vector3(cfg.pos.x - 1.0, 0, cfg.pos.z - 1.0),
-          new THREE.Vector3(cfg.pos.x + 1.0, 3.8, cfg.pos.z + 1.0)
-        )
-      });
-
-      // Save pillar reference
-      this.pillars[key] = {
+      // Save tablet reference
+      this.tablets[key] = {
         config: cfg,
-        group: pGroup,
+        group: tGroup,
         symMat: symMat,
-        light: pLight,
+        light: tLight,
         auraMat: auraMat,
         activated: false
       };
 
       // Register Interactable
+      // Generous interaction radius (3.8m) so player can comfortably inspect & connect directly from the ground
       this.interactables.push({
         type: 'water_pillar',
         id: key,
-        name: cfg.name,
+        name: `${cfg.icon} ${cfg.name}`,
         icon: cfg.icon,
-        position: new THREE.Vector3(cfg.pos.x, 1.8, cfg.pos.z),
-        radius: 3.6,
+        position: new THREE.Vector3(cfg.pos.x, 0.2, cfg.pos.z),
+        radius: 3.8,
         isCollected: false,
         getPrompt: () => {
-          if (!window.puzzleManager) return 'Inspect Pillar';
+          if (!window.puzzleManager) return `Inspect ${cfg.name}`;
           if (window.puzzleManager.allCluesDiscovered) {
             return `Connect Symbol: ${cfg.icon} ${key.toUpperCase()}`;
           }
-          return `Inspect Pillar: ${cfg.icon} ${key.toUpperCase()}`;
+          return `Inspect Tablet: ${cfg.icon} ${key.toUpperCase()}`;
         }
       });
     });
   }
 
-  buildEnergyChannels() {
-    // Connect Cloud(N) -> Rain(E) -> Lake(S) -> Ocean(W)
+  buildGroundEnergyChannels() {
+    // 4 Flat Ground Energy Channels connecting:
+    // CLOUD (N) ➔ RAIN (E) ➔ LAKE (S) ➔ RIVER (W) ➔ CLOUD (N)
     const connections = [
-      { from: this.pillarConfigs.cloud.pos, to: this.pillarConfigs.rain.pos, id: 'cloud_to_rain' },
-      { from: this.pillarConfigs.rain.pos, to: this.pillarConfigs.lake.pos, id: 'rain_to_lake' },
-      { from: this.pillarConfigs.lake.pos, to: this.pillarConfigs.ocean.pos, id: 'lake_to_ocean' },
-      { from: this.pillarConfigs.ocean.pos, to: this.pillarConfigs.cloud.pos, id: 'ocean_to_cloud' }
+      { from: this.tabletConfigs.cloud.pos, to: this.tabletConfigs.rain.pos, id: 'cloud_to_rain' },
+      { from: this.tabletConfigs.rain.pos,  to: this.tabletConfigs.lake.pos,  id: 'rain_to_lake' },
+      { from: this.tabletConfigs.lake.pos,  to: this.tabletConfigs.river.pos, id: 'lake_to_river' },
+      { from: this.tabletConfigs.river.pos, to: this.tabletConfigs.cloud.pos, id: 'river_to_cloud' }
     ];
 
     connections.forEach((conn, idx) => {
@@ -611,128 +478,173 @@ class LakeLevel {
       const dist = start.distanceTo(end);
       const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
 
-      // 1. Rising stone pathway segment
-      const pathGeo = new THREE.BoxGeometry(1.6, 0.12, dist);
+      // 1. Etched ground path indentation
+      const pathGeo = new THREE.BoxGeometry(1.2, 0.02, dist);
       const pathMat = new THREE.MeshStandardMaterial({
-        color: 0x6e7884,
-        roughness: 0.8,
-        metalness: 0.05
+        color: 0x5a564e,
+        roughness: 0.9,
+        metalness: 0.04
       });
       const pathMesh = new THREE.Mesh(pathGeo, pathMat);
-      pathMesh.position.set(mid.x, 0.22, mid.z);
-      pathMesh.lookAt(end.x, 0.22, end.z);
+      pathMesh.position.set(mid.x, 0.015, mid.z);
+      pathMesh.lookAt(end.x, 0.015, end.z);
       pathMesh.receiveShadow = true;
       this.group.add(pathMesh);
-      this.risingPaths.push(pathMesh);
 
-      // 2. Engraved central water energy conduit line
-      const lineGeo = new THREE.BoxGeometry(0.32, 0.16, dist * 0.98);
+      // 2. Glowing central water energy conduit line
+      const lineGeo = new THREE.BoxGeometry(0.35, 0.03, dist * 0.96);
       const lineMat = new THREE.MeshStandardMaterial({
         color: 0x00e1ff,
         emissive: 0x0077cc,
-        emissiveIntensity: 0.1, // Dormant
+        emissiveIntensity: 0.1, // Dormant until activated
         roughness: 0.2,
         metalness: 0.8,
         transparent: true,
         opacity: 0.5
       });
       const lineMesh = new THREE.Mesh(lineGeo, lineMat);
-      lineMesh.position.set(mid.x, 0.26, mid.z);
-      lineMesh.lookAt(end.x, 0.26, end.z);
+      lineMesh.position.set(mid.x, 0.022, mid.z);
+      lineMesh.lookAt(end.x, 0.022, end.z);
       this.group.add(lineMesh);
+
+      // 3. Water particles travelling along active path
+      const pCount = 35;
+      const pGeo = new THREE.BufferGeometry();
+      const pPos = new Float32Array(pCount * 3);
+      for (let i = 0; i < pCount; i++) {
+        const t = i / pCount;
+        pPos[i * 3]     = THREE.MathUtils.lerp(start.x, end.x, t);
+        pPos[i * 3 + 1] = 0.08 + Math.random() * 0.15;
+        pPos[i * 3 + 2] = THREE.MathUtils.lerp(start.z, end.z, t);
+      }
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      const pMat = new THREE.PointsMaterial({
+        color: 0x6be0ff,
+        size: 0.25,
+        transparent: true,
+        opacity: 0.0, // Invisible until channel activates
+        blending: THREE.AdditiveBlending
+      });
+      const particleSystem = new THREE.Points(pGeo, pMat);
+      this.group.add(particleSystem);
 
       this.animatedChannels.push({
         id: conn.id,
         mesh: lineMesh,
         mat: lineMat,
         pathMesh: pathMesh,
+        particleSystem: particleSystem,
+        pMat: pMat,
         active: false,
-        pulseOffset: idx * 0.5
+        pulseOffset: idx * 0.5,
+        startPos: start.clone(),
+        endPos: end.clone()
       });
     });
   }
 
-  buildCentralAltarAndCrystal() {
-    // Central Circular Altar at (0, 0, 0)
-    const altarGroup = new THREE.Group();
-    altarGroup.position.set(0, 0, 0);
+  buildCenterCrackingFissureAndCrystal() {
+    // Center Area: Completely open and flat ground!
+    // At center (0, 0, 0), four flat quadrant fissure plates sit flush with the dried lake bed.
+    // Upon puzzle completion, these plates crack open and slide outward, allowing the Blue Water Crystal to rise!
+    this.fissureGroup = new THREE.Group();
+    this.fissureGroup.position.set(0, 0, 0);
 
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.9, 0.8, 24), this.matPlatform);
-    base.position.y = 0.4;
-    base.castShadow = true;
-    base.receiveShadow = true;
-    altarGroup.add(base);
+    // 4 Flat Quadrant Fissure Plates (forming a sealed circular 4.6m diameter crack)
+    const angles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+    angles.forEach((a, i) => {
+      const plateGeo = new THREE.CircleGeometry(2.3, 16, a, Math.PI / 2);
+      const plateMat = new THREE.MeshStandardMaterial({
+        map: window.textureGen.getCrackedEarth(512, 512),
+        roughness: 0.94,
+        metalness: 0.04,
+        color: 0x8b857d
+      });
+      const plate = new THREE.Mesh(plateGeo, plateMat);
+      plate.rotation.x = -Math.PI / 2;
+      plate.position.y = 0.018;
+      plate.receiveShadow = true;
+      this.fissureGroup.add(plate);
 
-    // Circular Altar Ring with water symbols
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.18, 12, 32), this.matPillarRune);
-    rim.rotation.x = Math.PI / 2;
-    rim.position.y = 0.82;
-    altarGroup.add(rim);
-
-    // Altar Center Basin
-    const basin = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.6, 1.6, 0.3, 24),
-      new THREE.MeshStandardMaterial({ color: 0x112233, roughness: 0.2, metalness: 0.8 })
-    );
-    basin.position.y = 0.75;
-    altarGroup.add(basin);
-
-    this.group.add(altarGroup);
-
-    this.colliders.push({
-      type: 'box',
-      box: new THREE.Box3(
-        new THREE.Vector3(-2.6, 0, -2.6),
-        new THREE.Vector3(2.6, 1.2, 2.6)
-      )
+      this.fissurePlates.push({
+        mesh: plate,
+        angle: a + Math.PI / 4, // Direction to slide open
+        origX: plate.position.x,
+        origZ: plate.position.z
+      });
     });
 
-    // Hidden until reveal cutscene: The Sacred Blue Water Crystal
+    // Intense Subterranean Blue Light (beneath the crack)
+    this.subterraneanLight = new THREE.PointLight(0x00b4ff, 0.0, 30, 1.4);
+    this.subterraneanLight.position.set(0, -0.2, 0);
+    this.fissureGroup.add(this.subterraneanLight);
+
+    // Glowing crack fissure lines
+    const crackRings = new THREE.Mesh(
+      new THREE.RingGeometry(0.1, 2.35, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0x00d4ff,
+        transparent: true,
+        opacity: 0.0,
+        side: THREE.DoubleSide
+      })
+    );
+    crackRings.rotation.x = -Math.PI / 2;
+    crackRings.position.y = 0.02;
+    this.fissureGroup.add(crackRings);
+    this.crackGlowMesh = crackRings;
+
+    this.group.add(this.fissureGroup);
+
+    // ========================================================
+    // The Sacred Blue Water Crystal (rises from beneath the lake)
+    // ========================================================
     this.crystalGroup = new THREE.Group();
-    this.crystalGroup.position.set(0, -1.0, 0); // Beneath altar initially
+    this.crystalGroup.position.set(0, -2.0, 0); // Hidden beneath the ground initially
     this.crystalGroup.visible = false;
 
-    const crystalGeo = new THREE.OctahedronGeometry(1.3, 0);
-    crystalGeo.scale(0.85, 1.6, 0.85);
+    // Sculpted Water Crystal
+    const crystalGeo = new THREE.OctahedronGeometry(1.2, 0);
+    crystalGeo.scale(0.8, 1.65, 0.8);
 
     this.crystalMat = new THREE.MeshStandardMaterial({
       color: 0x00d4ff,
       emissive: 0x0099ff,
       emissiveIntensity: 2.2,
-      roughness: 0.12,
+      roughness: 0.1,
       metalness: 0.9,
       transparent: true,
-      opacity: 0.94
+      opacity: 0.95
     });
     this.blueCrystal = new THREE.Mesh(crystalGeo, this.crystalMat);
     this.crystalGroup.add(this.blueCrystal);
 
-    this.crystalLight = new THREE.PointLight(0x00d4ff, 3.5, 22, 1.2);
+    this.crystalLight = new THREE.PointLight(0x00d4ff, 3.6, 25, 1.2);
     this.crystalGroup.add(this.crystalLight);
 
-    // Sparkling water particles around crystal
-    const pCount = 60;
+    // Orbiting water mist particles around the crystal
+    const pCount = 70;
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(pCount * 3);
     for (let i = 0; i < pCount; i++) {
       const a = (i / pCount) * Math.PI * 6;
-      const r = 0.8 + (i / pCount) * 1.6;
-      pPos[i * 3] = Math.cos(a) * r;
-      pPos[i * 3 + 1] = ((i / pCount) - 0.5) * 2.8;
+      const r = 0.7 + (i / pCount) * 1.5;
+      pPos[i * 3]     = Math.cos(a) * r;
+      pPos[i * 3 + 1] = ((i / pCount) - 0.5) * 2.6;
       pPos[i * 3 + 2] = Math.sin(a) * r;
     }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     this.crystalParticles = new THREE.Points(pGeo, new THREE.PointsMaterial({
       color: 0x99eaff,
-      size: 0.24,
+      size: 0.22,
       transparent: true,
       opacity: 0.85,
       blending: THREE.AdditiveBlending
     }));
     this.crystalGroup.add(this.crystalParticles);
 
-    // Rising Light Beam
-    const beamGeo = new THREE.CylinderGeometry(1.8, 3.2, 120, 20, 1, true);
+    // Upward beam of light emerging from the crack
+    const beamGeo = new THREE.CylinderGeometry(1.5, 2.8, 100, 20, 1, true);
     this.beamMat = new THREE.MeshBasicMaterial({
       color: 0x00a2ff,
       transparent: true,
@@ -742,12 +654,12 @@ class LakeLevel {
       depthWrite: false
     });
     this.lightBeam = new THREE.Mesh(beamGeo, this.beamMat);
-    this.lightBeam.position.set(0, 60, 0);
+    this.lightBeam.position.set(0, 50, 0);
     this.group.add(this.lightBeam);
 
     this.group.add(this.crystalGroup);
 
-    // Radial expanding water pulse wave mesh
+    // Radial expanding water pulse wave
     const pulseGeo = new THREE.RingGeometry(0.5, 1.8, 48);
     this.pulseMat = new THREE.MeshBasicMaterial({
       color: 0x00e1ff,
@@ -758,26 +670,26 @@ class LakeLevel {
     });
     this.pulseMesh = new THREE.Mesh(pulseGeo, this.pulseMat);
     this.pulseMesh.rotation.x = -Math.PI / 2;
-    this.pulseMesh.position.y = 0.08;
+    this.pulseMesh.position.y = 0.03;
     this.group.add(this.pulseMesh);
   }
 
   buildWindParticles() {
-    // Calm ambient wind particles gently drifting across the lake bed
-    const pCount = 350;
+    // Gentle ambient wind motes drifting across the dried lake
+    const pCount = 300;
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(pCount * 3);
     for (let i = 0; i < pCount; i++) {
-      pPos[i * 3] = (Math.random() - 0.5) * 160;
-      pPos[i * 3 + 1] = 0.5 + Math.random() * 8.0;
-      pPos[i * 3 + 2] = (Math.random() - 0.5) * 160;
+      pPos[i * 3]     = (Math.random() - 0.5) * 150;
+      pPos[i * 3 + 1] = 0.4 + Math.random() * 6.0;
+      pPos[i * 3 + 2] = (Math.random() - 0.5) * 150;
     }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     const pMat = new THREE.PointsMaterial({
       color: 0xd8e8f5,
-      size: 0.18,
+      size: 0.16,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.4,
       blending: THREE.AdditiveBlending
     });
     this.windSystem = new THREE.Points(pGeo, pMat);
@@ -785,10 +697,10 @@ class LakeLevel {
   }
 
   buildMapBoundaries() {
-    // Invisible map boundary circle at radius 85m to keep player safely inside the playable lake
-    // Prevents player from wandering into unreachable terrain or missing objectives
+    // Invisible map boundary blockers around the entire level (radius 75m)
+    // Prevents player from wandering off or leaving playable dried lake
     const segs = 32;
-    const boundaryRadius = 82;
+    const boundaryRadius = 75;
     for (let i = 0; i < segs; i++) {
       const a = (i / segs) * Math.PI * 2;
       const nx = Math.cos(a) * boundaryRadius;
@@ -808,90 +720,75 @@ class LakeLevel {
   // ==========================================
 
   activateConnectionStep(stepIndex) {
-    // stepIndex: 1 = Cloud, 2 = Rain, 3 = Lake, 4 = Ocean
+    // stepIndex: 1 = Cloud, 2 = Rain, 3 = Lake, 4 = River
     this.connectionStep = stepIndex;
 
-    const orderKeys = ['cloud', 'rain', 'lake', 'ocean'];
-    const currentKey = orderKeys[stepIndex - 1];
+    const currentKey = this.tabletOrder[stepIndex - 1];
 
-    // 1. Pillar glows brighter
-    if (this.pillars[currentKey]) {
-      const p = this.pillars[currentKey];
-      p.activated = true;
-      p.symMat.emissiveIntensity = 2.4;
-      p.light.intensity = 3.5;
-      p.auraMat.opacity = 0.9;
+    // 1. Tablet glows with intense cyan aura
+    if (this.tablets[currentKey]) {
+      const t = this.tablets[currentKey];
+      t.activated = true;
+      t.symMat.emissiveIntensity = 2.4;
+      t.light.intensity = 3.6;
+      t.auraMat.opacity = 0.95;
     }
 
-    // 2. Channel connecting previous to current activates and stone path rises
+    // 2. Ground conduit path connecting previous to current tablet activates
     if (stepIndex >= 2) {
       const channelIdx = stepIndex - 2;
       if (this.animatedChannels[channelIdx]) {
         const c = this.animatedChannels[channelIdx];
         c.active = true;
-        c.mat.emissiveIntensity = 2.2;
+        c.mat.emissiveIntensity = 2.4;
         c.mat.opacity = 0.95;
-        // Stone pathway elevates slightly
-        if (c.pathMesh) {
-          c.pathMesh.position.y = 0.32;
-        }
+        if (c.pMat) c.pMat.opacity = 0.85;
       }
-    }
-
-    // 3. Platform brightness scales with progress
-    if (this.runeRingOuter) {
-      this.runeRingOuter.material.emissiveIntensity = 0.35 + stepIndex * 0.4;
-    }
-    if (this.runeRingInner) {
-      this.runeRingInner.material.emissiveIntensity = 0.45 + stepIndex * 0.5;
     }
   }
 
   resetConnectionAttempt() {
     this.connectionStep = 0;
-    this.connectedPillars = [];
+    this.connectedTablets = [];
 
-    // Reset pillar glow to dormant faint blue
-    Object.keys(this.pillars).forEach(key => {
-      const p = this.pillars[key];
-      p.activated = false;
-      p.symMat.emissiveIntensity = 0.7;
-      p.light.intensity = 1.2;
-      p.auraMat.opacity = 0.35;
+    // Reset tablets back to dormant soft glow
+    Object.keys(this.tablets).forEach(key => {
+      const t = this.tablets[key];
+      t.activated = false;
+      t.symMat.emissiveIntensity = 0.6;
+      t.light.intensity = 1.2;
+      t.auraMat.opacity = 0.35;
     });
 
-    // Reset channels
+    // Reset ground energy conduits
     this.animatedChannels.forEach(c => {
       c.active = false;
       c.mat.emissiveIntensity = 0.1;
       c.mat.opacity = 0.5;
-      if (c.pathMesh) {
-        c.pathMesh.position.y = 0.22;
-      }
+      if (c.pMat) c.pMat.opacity = 0.0;
     });
-
-    // Reset platform glow
-    if (this.runeRingOuter) this.runeRingOuter.material.emissiveIntensity = 0.35;
-    if (this.runeRingInner) this.runeRingInner.material.emissiveIntensity = 0.45;
   }
 
-  // Trigger Crystal Reveal Cutscene
+  // ==========================================
+  // Cinematic Crystal Reveal Cutscene
+  // ==========================================
   triggerCrystalRevealCinematic() {
     this.puzzleSolved = true;
     this.cutsceneActive = true;
     this.cutsceneTimer = 0;
 
-    // Connect final channel (Ocean to Cloud completing circuit)
+    // Connect final channel (River to Cloud completing the water cycle!)
     if (this.animatedChannels[3]) {
       this.animatedChannels[3].active = true;
-      this.animatedChannels[3].mat.emissiveIntensity = 2.5;
+      this.animatedChannels[3].mat.emissiveIntensity = 2.6;
       this.animatedChannels[3].mat.opacity = 0.95;
+      if (this.animatedChannels[3].pMat) this.animatedChannels[3].pMat.opacity = 0.85;
     }
 
-    // 1. Camera focus on center altar & shake
+    // 1. Camera focus on center (0, 1.8, 0) + ground rumble shake
     if (window.gameManager && window.gameManager.player) {
-      window.gameManager.player.triggerCutsceneFocus(new THREE.Vector3(0, 2.5, 0), 4.5);
-      window.gameManager.player.addCameraShake(0.42, 2.8);
+      window.gameManager.player.triggerCutsceneFocus(new THREE.Vector3(0, 1.8, 0), 4.5);
+      window.gameManager.player.addCameraShake(0.45, 3.0);
     }
 
     // 2. Play sound effects
@@ -899,26 +796,26 @@ class LakeLevel {
       window.soundSystem.playBlueShrineBeam();
     }
 
-    // 3. Reveal crystal and raise it
+    // 3. Make crystal visible and begin rising from beneath cracked ground
     this.crystalGroup.visible = true;
     this.crystalRevealed = true;
 
-    // 4. Register Crystal Collection Interactable after reveal
+    // 4. Register Crystal Collection Interactable after emergence
     setTimeout(() => {
       this.interactables.push({
         type: 'water_crystal',
         id: 'water_crystal',
-        name: 'Water Crystal',
+        name: 'Blue Water Crystal',
         icon: '💎',
-        position: new THREE.Vector3(0, 2.5, 0),
+        position: new THREE.Vector3(0, 2.2, 0),
         radius: 3.8,
         isCollected: false,
-        getPrompt: () => 'Collect Water Crystal'
+        getPrompt: () => 'Collect Sacred Water Crystal'
       });
     }, 3800);
   }
 
-  // Trigger Water Pulse Wave upon Crystal Collection
+  // Radial water pulse wave across the lake bed
   triggerWaterPulseWave() {
     this.pulseActive = true;
     this.pulseRadius = 1.0;
@@ -929,49 +826,82 @@ class LakeLevel {
   }
 
   update(delta, time) {
-    // 1. Animate wind particles
+    // 1. Animate ambient wind particles
     if (this.windSystem) {
       const pos = this.windSystem.geometry.attributes.position.array;
       const count = pos.length / 3;
       for (let i = 0; i < count; i++) {
-        pos[i * 3] += delta * 6.5; // Wind blowing East
-        if (pos[i * 3] > 80) pos[i * 3] = -80;
+        pos[i * 3] += delta * 6.0;
+        if (pos[i * 3] > 75) pos[i * 3] = -75;
         pos[i * 3 + 1] += Math.sin(time * 2.0 + i) * 0.01;
       }
       this.windSystem.geometry.attributes.position.needsUpdate = true;
     }
 
-    // 2. Animate active energy channels
+    // 2. Animate active energy channels and flowing water particles
     this.animatedChannels.forEach((c) => {
       if (c.active) {
         c.mat.emissiveIntensity = 2.0 + Math.sin(time * 6.0 + c.pulseOffset) * 0.6;
+
+        if (c.particleSystem) {
+          const pPos = c.particleSystem.geometry.attributes.position.array;
+          const pLen = pPos.length / 3;
+          for (let i = 0; i < pLen; i++) {
+            // Flow along the direction
+            let t = ((time * 0.6 + (i / pLen)) % 1.0);
+            pPos[i * 3]     = THREE.MathUtils.lerp(c.startPos.x, c.endPos.x, t);
+            pPos[i * 3 + 1] = 0.08 + Math.sin(time * 8.0 + i) * 0.06;
+            pPos[i * 3 + 2] = THREE.MathUtils.lerp(c.startPos.z, c.endPos.z, t);
+          }
+          c.particleSystem.geometry.attributes.position.needsUpdate = true;
+        }
       }
     });
 
-    // 3. Animate crystal emergence and hover
-    if (this.crystalRevealed && this.crystalGroup) {
-      // Rise from beneath altar up to eye level y = 2.6
-      if (this.crystalGroup.position.y < 2.6) {
-        this.crystalGroup.position.y += delta * 0.85;
-      } else {
-        this.crystalGroup.position.y = 2.6 + Math.sin(time * 2.5) * 0.15;
+    // 3. Animate ground fissure cracking open & crystal rising
+    if (this.crystalRevealed) {
+      // Crack open ground plates
+      if (this.fissureCrackProgress < 1.0) {
+        this.fissureCrackProgress = Math.min(1.0, this.fissureCrackProgress + delta * 0.45);
+        const slide = this.fissureCrackProgress * 1.3;
+        this.fissurePlates.forEach(p => {
+          p.mesh.position.x = Math.cos(p.angle) * slide;
+          p.mesh.position.z = Math.sin(p.angle) * slide;
+        });
+
+        // Subterranean light flares
+        if (this.subterraneanLight) {
+          this.subterraneanLight.intensity = this.fissureCrackProgress * 4.0;
+        }
+        if (this.crackGlowMesh) {
+          this.crackGlowMesh.material.opacity = this.fissureCrackProgress * 0.85;
+        }
       }
 
-      // Rotate slowly
-      if (this.blueCrystal) {
-        this.blueCrystal.rotation.y += delta * 1.1;
-        this.blueCrystal.rotation.x = Math.sin(time * 1.6) * 0.12;
-      }
+      // Smoothly rise crystal from y = -2.0 up to y = 2.2
+      if (this.crystalGroup) {
+        if (this.crystalGroup.position.y < 2.2) {
+          this.crystalGroup.position.y += delta * 0.9;
+        } else {
+          this.crystalGroup.position.y = 2.2 + Math.sin(time * 2.5) * 0.12;
+        }
 
-      // Particle orbit
-      if (this.crystalParticles) {
-        this.crystalParticles.rotation.y += delta * 1.5;
-      }
+        // Crystal rotation
+        if (this.blueCrystal) {
+          this.blueCrystal.rotation.y += delta * 1.2;
+          this.blueCrystal.rotation.x = Math.sin(time * 1.8) * 0.12;
+        }
 
-      // Pillar of light beam fade
-      if (this.lightBeam && this.beamMat) {
-        if (this.beamMat.opacity < 0.85) {
-          this.beamMat.opacity = Math.min(0.85, this.beamMat.opacity + delta * 0.6);
+        // Particle halo orbit
+        if (this.crystalParticles) {
+          this.crystalParticles.rotation.y += delta * 1.6;
+        }
+
+        // Vertical light beam fade-in
+        if (this.lightBeam && this.beamMat) {
+          if (this.beamMat.opacity < 0.85) {
+            this.beamMat.opacity = Math.min(0.85, this.beamMat.opacity + delta * 0.5);
+          }
         }
       }
     }

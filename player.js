@@ -598,8 +598,8 @@ class PlayerController {
         if (Math.abs(x) > 27 || z > 56) return true;
       }
     } else {
-      // Level 2 Lake perimeter boundary (radius 115)
-      if (x * x + z * z > 115 * 115) return true;
+      // Level 2 Lake perimeter boundary (radius 74m)
+      if (x * x + z * z > 74 * 74) return true;
     }
 
     for (let obj of collisionObjects) {

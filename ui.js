@@ -121,7 +121,7 @@ class UIManager {
         } catch (e) {}
 
         this.showNotification('🌊 Water Realm: Restore the Water Cycle');
-        this.setObjective('Explore the dried lake bed and inspect the 4 ancient stone pillars.');
+        this.setObjective('Explore the dried lake bed and inspect the 4 ground stone tablets.');
       });
     }
 
@@ -452,22 +452,22 @@ class UIManager {
     }
 
     // Quest tracker steps & objective
-    this.setObjective('Explore the dried lake bed and inspect the 4 ancient stone pillars.');
+    this.setObjective('Explore the dried lake bed and inspect the 4 ground stone tablets.');
 
     const questUl = document.querySelector('.quest-steps');
     if (questUl) {
       questUl.innerHTML = `
         <li class="quest-step active" id="l2-step-0">
           <span class="step-dot"></span>
-          <span>Inspect 4 Ancient Pillars (☁️ 🌧️ 🏞️ 🌊)</span>
+          <span>Inspect 4 Stone Tablets (☁️ 🌧️ 🏞️ 🌊)</span>
         </li>
         <li class="quest-step" id="l2-step-1">
           <span class="step-dot"></span>
-          <span>Connect Symbols (CLOUD ➔ RAIN ➔ LAKE ➔ OCEAN)</span>
+          <span>Connect Symbols (CLOUD ➔ RAIN ➔ LAKE ➔ RIVER)</span>
         </li>
         <li class="quest-step" id="l2-step-2">
           <span class="step-dot"></span>
-          <span>Witness the Water Crystal Awaken</span>
+          <span>Witness the Water Crystal Emerge</span>
         </li>
         <li class="quest-step" id="l2-step-3">
           <span class="step-dot"></span>
@@ -535,62 +535,53 @@ class UIManager {
       this.drawPOIMarker(ctx, mapX(0), mapY(-65), '#ff1128', '🔥');
     } else {
       // Level 2: Water Realm - The Dried Lake Mini-Map
-      const scale = 2.8;
+      const scale = 2.4;
       const mapX = (worldX) => centerX + (worldX - this.player.position.x) * scale;
       const mapY = (worldZ) => centerY + (worldZ - this.player.position.z) * scale;
 
-      // Outer Lake Basin Perimeter
+      // Outer Dried Lake Basin Boundary (radius 75m)
       ctx.beginPath();
-      ctx.arc(mapX(0), mapY(0), 82 * scale, 0, Math.PI * 2);
-      ctx.fillStyle = '#141822';
+      ctx.arc(mapX(0), mapY(0), 75 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = '#12161f';
       ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = '#263346';
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#2d3b4e';
       ctx.stroke();
 
-      // Circular Walking Path (radius 13.5m)
+      // Open Circular Lake Bed Ring (radius 18m)
       ctx.beginPath();
-      ctx.arc(mapX(0), mapY(0), 13.5 * scale, 0, Math.PI * 2);
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = 'rgba(75, 90, 110, 0.4)';
+      ctx.arc(mapX(0), mapY(0), 18 * scale, 0, Math.PI * 2);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(75, 110, 145, 0.4)';
       ctx.stroke();
 
-      // Stone Platform (radius 12m)
-      ctx.beginPath();
-      ctx.arc(mapX(0), mapY(0), 12.0 * scale, 0, Math.PI * 2);
-      ctx.fillStyle = '#1e2634';
-      ctx.fill();
+      // Connecting energy circuit lines between tablets
+      ctx.strokeStyle = 'rgba(0, 180, 255, 0.35)';
       ctx.lineWidth = 2;
-      ctx.strokeStyle = '#00aaff';
+      ctx.beginPath();
+      ctx.moveTo(mapX(0), mapY(-14));
+      ctx.lineTo(mapX(14), mapY(0));
+      ctx.lineTo(mapX(0), mapY(14));
+      ctx.lineTo(mapX(-14), mapY(0));
+      ctx.closePath();
       ctx.stroke();
 
-      // South Stone Path
-      ctx.strokeStyle = 'rgba(80, 100, 125, 0.6)';
-      ctx.lineWidth = 6;
+      // Center Fissure & Water Crystal
       ctx.beginPath();
-      ctx.moveTo(mapX(0), mapY(13));
-      ctx.lineTo(mapX(0), mapY(32));
-      ctx.stroke();
-
-      // Central Altar & Water Crystal
-      ctx.beginPath();
-      ctx.arc(mapX(0), mapY(0), 2.8 * scale, 0, Math.PI * 2);
-      ctx.fillStyle = '#0088cc';
+      ctx.arc(mapX(0), mapY(0), 2.5 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 170, 255, 0.4)';
       ctx.fill();
       this.drawPOIMarker(ctx, mapX(0), mapY(0), '#00d4ff', '💎');
 
-      // 4 Ancient Pillars with Symbols
-      // Pillar 1: ☁️ CLOUD (North: 0, -8.8)
-      this.drawPOIMarker(ctx, mapX(0), mapY(-8.8), '#38b6ff', '☁️');
-      // Pillar 2: 🌧️ RAIN (East: 8.8, 0)
-      this.drawPOIMarker(ctx, mapX(8.8), mapY(0), '#38b6ff', '🌧️');
-      // Pillar 3: 🏞️ LAKE (South: 0, 8.8)
-      this.drawPOIMarker(ctx, mapX(0), mapY(8.8), '#38b6ff', '🏞️');
-      // Pillar 4: 🌊 OCEAN (West: -8.8, 0)
-      this.drawPOIMarker(ctx, mapX(-8.8), mapY(0), '#38b6ff', '🌊');
-
-      // Direction Signs
-      this.drawPOIMarker(ctx, mapX(0), mapY(30.5), '#e5b95c', '🪧');
+      // 4 Ground Stone Tablets (radius 14m)
+      // Stone 1: ☁️ CLOUD (North: 0, -14)
+      this.drawPOIMarker(ctx, mapX(0), mapY(-14), '#38b6ff', '☁️');
+      // Stone 2: 🌧️ RAIN (East: 14, 0)
+      this.drawPOIMarker(ctx, mapX(14), mapY(0), '#38b6ff', '🌧️');
+      // Stone 3: 🏞️ LAKE (South: 0, 14)
+      this.drawPOIMarker(ctx, mapX(0), mapY(14), '#38b6ff', '🏞️');
+      // Stone 4: 🌊 RIVER (West: -14, 0)
+      this.drawPOIMarker(ctx, mapX(-14), mapY(0), '#38b6ff', '🌊');
     }
 
     // Player Direction Cone & Position Marker

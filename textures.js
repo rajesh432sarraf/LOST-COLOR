@@ -628,21 +628,22 @@ class TextureGenerator {
         ctx.stroke();
         break;
 
+      case 'river':
       case 'ocean':
-        // Great curling ocean wave
+        // Flowing river streams with curling wave crests
         ctx.beginPath();
-        ctx.moveTo(-50, 30);
-        ctx.bezierCurveTo(-30, 30, -15, -10, 10, -40);
-        ctx.bezierCurveTo(30, -60, 45, -20, 20, -10);
-        ctx.bezierCurveTo(5, -5, 0, -25, 15, -30);
+        ctx.moveTo(-55, -15);
+        ctx.bezierCurveTo(-25, -35, 10, 5, 55, -15);
+        ctx.moveTo(-55, 12);
+        ctx.bezierCurveTo(-25, -10, 10, 32, 55, 12);
+        ctx.moveTo(-45, 36);
+        ctx.bezierCurveTo(-15, 18, 15, 50, 45, 36);
         ctx.stroke();
-        // Sub-waves
+        // Water droplet
         ctx.beginPath();
-        ctx.arc(-15, 15, 18, Math.PI, 0);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(20, 20, 20, Math.PI, 0);
-        ctx.stroke();
+        ctx.arc(0, -32, 6, 0, Math.PI * 2);
+        ctx.fillStyle = isLit ? '#ffffff' : '#88d8ff';
+        ctx.fill();
         break;
     }
 

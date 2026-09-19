@@ -53,7 +53,9 @@ class GameManager {
 
   initGameSystems() {
     // 1. Temple Level Geometry & Environment
+    const sceneBeforeTemple = [...this.scene.children];
     this.temple = new TempleLevel(this.scene);
+    this.templeObjects = this.scene.children.filter(c => !sceneBeforeTemple.includes(c));
 
     // 2. Player Adventurer & Camera
     this.player = new PlayerController(this.scene, this.camera, this.renderer.domElement);
@@ -148,6 +150,12 @@ class GameManager {
   // ==========================================
   transitionToLevel2() {
     // 1. Completely remove Level 1 Red Temple from scene so no Level 1 assets are visible
+    if (this.templeObjects && this.templeObjects.length > 0) {
+      this.templeObjects.forEach(obj => {
+        obj.visible = false;
+        this.scene.remove(obj);
+      });
+    }
     if (this.temple && this.temple.group) {
       this.scene.remove(this.temple.group);
       this.temple.group.visible = false;
