@@ -45,12 +45,12 @@ class CinematicIntro {
     // Ambient floating golden & cyan particles
     this.initCinematicAtmosphere();
 
-    // 6 Full-Color, Realistic Cinematic Scenes
+    // 6 Cinematic Story Scenes
     this.scenes = [
       {
         id: 'world_harmony',
-        name: 'THE REALM OF HARMONY',
-        text: 'Once, the ancient world flourished in rich, vibrant beauty under the harmony of three sacred forces.',
+        name: 'THE REALM OF LUMINARIA',
+        text: 'Once, the kingdom of Luminaria flourished in vibrant color and harmony, governed by three sacred primal forces.',
         duration: 6.8,
         camStart: new THREE.Vector3(34, 30, 88),
         camEnd: new THREE.Vector3(10, 16, 62),
@@ -65,7 +65,7 @@ class CinematicIntro {
       {
         id: 'sacred_crystals',
         name: 'THE THREE SACRED CRYSTALS',
-        text: '🔴 Red represents Passion, 🔵 Blue brings Peace, and 🟢 Green breathes Life into all creation.',
+        text: '🔴 Red granted Passion and Courage, 🔵 Blue brought Serenity and Peace, and 🟢 Green breathed Life into the realm.',
         duration: 7.2,
         camStart: new THREE.Vector3(-6.5, 3.6, 26.5),
         camEnd: new THREE.Vector3(6.5, 4.0, 26.5),
@@ -81,24 +81,42 @@ class CinematicIntro {
         }
       },
       {
-        id: 'shadow_threat',
-        name: 'THE ANCIENT PROPHECY',
-        text: 'When a mysterious dark entity threatens the land, the sacred crystals must be protected within the elemental temples.',
-        duration: 6.4,
+        id: 'color_thief_invasion',
+        name: 'THE COLOR THIEF STRIKES',
+        text: 'A malevolent shadow descended — the Color Thief devoured every color in the kingdom and scattered the crystals into ancient peril!',
+        duration: 6.8,
         camStart: new THREE.Vector3(0, 3.8, 52),
         camEnd: new THREE.Vector3(0, 14.0, 44),
         lookStart: new THREE.Vector3(0, 16, 24),
         lookEnd: new THREE.Vector3(0, 38, 12),
         setup: () => {
-          if (this.postProcessing) this.postProcessing.setWorldSaturation(1.0);
           if (window.soundSystem) window.soundSystem.playTheftVortexSound();
+        },
+        update: (progress) => {
+          // Visually drain world colors into grayscale as the shadow strikes!
+          if (this.postProcessing) {
+            this.postProcessing.setWorldSaturation(Math.max(0.0, 1.0 - progress * 1.6));
+          }
         }
       },
       {
-        id: 'lone_explorer',
-        name: 'THE LONE EXPLORER',
-        text: 'One courageous adventurer answered the call to explore the ancient ruins and claim the sacred crystals.',
+        id: 'faded_palace',
+        name: 'THE FADED SANCTUM',
+        text: 'The Royal Palace was plunged into silence. Velvet runners turned to ash, warm braziers grew cold, and the royal fountains went dry.',
         duration: 6.6,
+        camStart: new THREE.Vector3(-12, 4.0, 40),
+        camEnd: new THREE.Vector3(0, 3.0, 28),
+        lookStart: new THREE.Vector3(0, 4.0, 20),
+        lookEnd: new THREE.Vector3(0, 3.5, 20),
+        setup: () => {
+          if (this.postProcessing) this.postProcessing.setWorldSaturation(0.0);
+        }
+      },
+      {
+        id: 'royal_soldier',
+        name: 'THE ROYAL GUARDIAN',
+        text: 'Awakening in the faded throne room, one loyal Soldier takes up the royal decree: explore the 3 realms and recover the lost crystals!',
+        duration: 6.8,
         camStart: new THREE.Vector3(-2.2, 1.8, 43.5),
         camEnd: new THREE.Vector3(2.2, 1.9, 43.5),
         lookStart: new THREE.Vector3(0, 1.35, 46.0),
@@ -109,23 +127,10 @@ class CinematicIntro {
         }
       },
       {
-        id: 'temple_reveal',
-        name: 'THE TEMPLE OF RED',
-        text: 'Chapter I: Temple of Red. Three Guardian Statues hold the alignment secret to unlock the sacred gate.',
-        duration: 7.2,
-        camStart: new THREE.Vector3(-14, 4.2, 42),
-        camEnd: new THREE.Vector3(0, 3.4, 26),
-        lookStart: new THREE.Vector3(0, 5.0, 20),
-        lookEnd: new THREE.Vector3(0, 4.5, 20),
-        setup: () => {
-          if (this.postProcessing) this.postProcessing.setWorldSaturation(1.0);
-        }
-      },
-      {
         id: 'title_reveal',
-        name: 'COLOR THIEF',
-        text: 'Temple of Red · Ancient Sacred Ruins · Begin Adventure',
-        duration: 4.8,
+        name: 'LOST COLOR',
+        text: 'The Royal Awakening · Enter the Portals · Restore the Kingdom of Color',
+        duration: 5.0,
         camStart: new THREE.Vector3(0, 3.2, 51.5),
         camEnd: new THREE.Vector3(0, 2.6, 52.8),
         lookStart: new THREE.Vector3(0, 2.0, 40),

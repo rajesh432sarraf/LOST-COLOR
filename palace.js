@@ -508,12 +508,20 @@ class PalaceLevel {
       element: element,
       position: new THREE.Vector3(x, y + 0.5, z),
       interactionDistance: 3.4,
-      isPlaced: false,
       getPrompt: () => {
         if (this.sockets[element].placed) {
-          return `✨ ${label} (Socketed)`;
+          return `✨ ${label} (Restored & Glowing)`;
         }
-        return `[E] Place ${label} into Altar of Elements`;
+        const hasIt = window.puzzleManager && (
+          (element === 'fire' && window.puzzleManager.inventory.red) ||
+          (element === 'water' && window.puzzleManager.inventory.water) ||
+          (element === 'life' && window.puzzleManager.inventory.life)
+        );
+        if (hasIt) {
+          return `[E] Mount ${label} on Altar (Awaken Colors!)`;
+        }
+        const realm = element === 'fire' ? 'Chapter I (🔴)' : element === 'water' ? 'Chapter II (🔵)' : 'Chapter III (🟢)';
+        return `🔒 ${label} Socket (Recover from ${realm})`;
       }
     });
   }

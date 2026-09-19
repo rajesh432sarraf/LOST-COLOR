@@ -588,6 +588,40 @@ class UIManager {
     if (this.keySlot) {
       this.keySlot.style.display = 'none';
     }
+
+    // Dynamic Quest Checklist & Objective Sync
+    const pm = window.puzzleManager;
+    const inv = pm ? pm.inventory : {};
+    const sockets = pm ? pm.altarSockets : (palace ? { fire: palace.sockets.fire.placed, water: palace.sockets.water.placed, life: palace.sockets.life.placed } : {});
+
+    if (sockets.fire && sockets.water && sockets.life) {
+      this.setObjective('✨ All 3 Crystals Restored! The Kingdom of Luminaria shines in eternal color!');
+      for (let i = 0; i <= 6; i++) this.completeQuestStep(i);
+    } else if (sockets.fire && sockets.water) {
+      if (inv.life) {
+        this.setObjective('🟢 Life Crystal Carried! Mount it into the North Socket of the Altar!');
+        for (let i = 0; i <= 5; i++) this.completeQuestStep(i);
+      } else {
+        this.setObjective('The Forest of Life Portal (🟢 North) is open! Journey to Chapter III to recover the Life Crystal.');
+        for (let i = 0; i <= 4; i++) this.completeQuestStep(i);
+      }
+    } else if (sockets.fire) {
+      if (inv.water) {
+        this.setObjective('🔵 Water Crystal Carried! Mount it into the East Socket of the Altar!');
+        for (let i = 0; i <= 3; i++) this.completeQuestStep(i);
+      } else {
+        this.setObjective('The Dried Lake Portal (🔵 East) is open! Journey to Chapter II to recover the Water Crystal.');
+        for (let i = 0; i <= 2; i++) this.completeQuestStep(i);
+      }
+    } else {
+      if (inv.red) {
+        this.setObjective('🔴 Fire Crystal Carried! Mount it into the West Socket of the Altar to awaken Crimson colors!');
+        this.completeQuestStep(0);
+        this.completeQuestStep(1);
+      } else {
+        this.setObjective('Inspect the central Altar, then enter Chapter I Portal (🔴 West) to recover the Fire Crystal.');
+      }
+    }
   }
 
   setupLevel1UI(temple) {
