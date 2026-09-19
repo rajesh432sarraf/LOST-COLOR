@@ -1574,3 +1574,79 @@ body.cinematic-active .letterbox.bottom {
   box-shadow: 0 0 30px rgba(255, 51, 68, 0.4);
   animation: pulse-start 2s infinite;
 }
+
+/* ==========================================================================
+   Royal Crystal Inventory Bar (Top Center)
+   ========================================================================== */
+.crystal-inventory-bar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(15, 18, 25, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 30px;
+  padding: 6px 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 215, 0, 0.2);
+  z-index: 95;
+  pointer-events: auto;
+  transition: var(--transition-smooth);
+}
+
+.crystal-slots-container {
+  display: flex;
+  gap: 14px;
+}
+
+.crystal-slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--font-cinzel);
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+  transition: var(--transition-smooth);
+}
+
+.crystal-slot.lost {
+  opacity: 0.4;
+  color: #8395a7;
+  filter: grayscale(0.8);
+}
+
+.crystal-slot.carried {
+  opacity: 1;
+  color: #ffffff;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.65);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.45);
+  animation: carried-pulse 1.8s infinite alternate;
+}
+
+.crystal-slot.mounted {
+  opacity: 1;
+  color: #ffffff;
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.6);
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.35);
+}
+
+.crystal-slot .slot-status {
+  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  opacity: 0.85;
+}
+
+@keyframes carried-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+  100% { transform: scale(1.05); box-shadow: 0 0 18px rgba(255, 215, 0, 0.7); }
+}
+

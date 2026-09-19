@@ -38,6 +38,7 @@ class UIManager {
 
     // Level 2 Intro Dashboard
     this.level2IntroDashboard = document.getElementById('level2-intro-dashboard');
+    this.palaceIntroDashboard = document.getElementById('palace-intro-dashboard');
 
     // Red Flash Overlay
     this.redFlashOverlay = document.getElementById('red-flash-overlay');
@@ -52,7 +53,8 @@ class UIManager {
     this.score = 0;
     this.startTime = Date.now();
     this.isMuted = false;
-    this.currentLevel = 1;
+    this.currentLevel = 0; // 0 = Palace Hub
+    this.palace = null;
     this.lake = null;
     this.forest = null;
 
@@ -154,6 +156,49 @@ class UIManager {
 
         this.showNotification('🌿 Forest of Life: Awaken the Cycle of Life');
         this.setObjective('Explore the sacred grove and inspect the 4 overgrown shrines.');
+      });
+    }
+
+    // Palace Prologue Dashboard "ACCEPT ROYAL MISSION" button
+    const btnStartPalace = document.getElementById('btn-start-palace');
+    if (btnStartPalace) {
+      btnStartPalace.addEventListener('click', () => {
+        this.hidePalaceIntroDashboard();
+        try {
+          if (window.gameManager && window.gameManager.renderer) {
+            window.gameManager.renderer.domElement.requestPointerLock();
+          }
+        } catch (e) {}
+
+        this.showNotification('🏛️ Royal Mission: Restore the Faded Citadel');
+        this.setObjective('Inspect the central Altar of Elements and enter Chapter I Portal (🔴 Temple of Red).');
+      });
+    }
+
+    // Return to Palace from Level 1
+    const btnPalaceL1 = document.getElementById('btn-palace-from-l1');
+    if (btnPalaceL1) {
+      btnPalaceL1.addEventListener('click', () => {
+        if (this.victoryScreen) this.victoryScreen.classList.remove('visible');
+        if (window.gameManager) window.gameManager.transitionToPalace();
+      });
+    }
+
+    // Return to Palace from Level 2
+    const btnPalaceL2 = document.getElementById('btn-palace-from-l2');
+    if (btnPalaceL2) {
+      btnPalaceL2.addEventListener('click', () => {
+        if (this.level2VictoryScreen) this.level2VictoryScreen.classList.remove('visible');
+        if (window.gameManager) window.gameManager.transitionToPalace();
+      });
+    }
+
+    // Return to Palace from Level 3
+    const btnPalaceL3 = document.getElementById('btn-palace-from-l3');
+    if (btnPalaceL3) {
+      btnPalaceL3.addEventListener('click', () => {
+        if (this.level3VictoryScreen) this.level3VictoryScreen.classList.remove('visible');
+        if (window.gameManager) window.gameManager.transitionToPalace();
       });
     }
 
@@ -469,6 +514,100 @@ class UIManager {
     }
   }
 
+  showPalaceIntroDashboard() {
+    if (this.palaceIntroDashboard) {
+      this.palaceIntroDashboard.classList.add('open');
+      try { document.exitPointerLock(); } catch (e) {}
+    }
+  }
+
+  hidePalaceIntroDashboard() {
+    if (this.palaceIntroDashboard) {
+      this.palaceIntroDashboard.classList.remove('open');
+    }
+  }
+
+  setupPalaceUI(palace) {
+    this.palace = palace;
+    this.currentLevel = 0;
+
+    const titleBadge = document.querySelector('.title-badge');
+    if (titleBadge) {
+      titleBadge.innerHTML = `
+        <h1>COLOR THIEF <span style="color: #ffd700; text-shadow: 0 0 14px rgba(255, 215, 0, 0.85);">ROYAL PALACE</span></h1>
+        <div class="subtitle">The Faded Sanctum · Kingdom of Luminaria</div>
+        <div class="hud-score" id="hud-score-display">Score: ${this.score}</div>
+      `;
+    }
+
+    this.setObjective('Inspect the central Altar of Elements and embark through Chapter I Portal (🔴).');
+
+    const questUl = document.querySelector('.quest-steps');
+    if (questUl) {
+      questUl.innerHTML = `
+        <li class="quest-step active" id="pal-step-0">
+          <span class="step-dot"></span>
+          <span>Inspect the Altar of Elements (Throne Room)</span>
+        </li>
+        <li class="quest-step" id="pal-step-1">
+          <span class="step-dot"></span>
+          <span>Chapter I: Enter Temple Portal & Recover Fire Crystal</span>
+        </li>
+        <li class="quest-step" id="pal-step-2">
+          <span class="step-dot"></span>
+          <span>Mount Fire Crystal into Altar (Restores Red)</span>
+        </li>
+        <li class="quest-step" id="pal-step-3">
+          <span class="step-dot"></span>
+          <span>Chapter II: Enter Lake Portal & Recover Water Crystal</span>
+        </li>
+        <li class="quest-step" id="pal-step-4">
+          <span class="step-dot"></span>
+          <span>Mount Water Crystal into Altar (Restores Blue)</span>
+        </li>
+        <li class="quest-step" id="pal-step-5">
+          <span class="step-dot"></span>
+          <span>Chapter III: Enter Forest Portal & Recover Life Crystal</span>
+        </li>
+        <li class="quest-step" id="pal-step-6">
+          <span class="step-dot"></span>
+          <span>Mount Life Crystal: Grand Kingdom Restoration!</span>
+        </li>
+      `;
+      this.questSteps = document.querySelectorAll('.quest-step');
+    }
+
+    if (this.keySlot) {
+      this.keySlot.style.display = 'none';
+    }
+  }
+
+  updateCrystalInventory(inventory = {}, altarSockets = {}) {
+    const fireStatus = altarSockets.fire ? '✨ Mounted' : (inventory.red ? '🎒 Carried' : '🔒 Lost');
+    const waterStatus = altarSockets.water ? '✨ Mounted' : (inventory.water ? '🎒 Carried' : '🔒 Lost');
+    const lifeStatus = altarSockets.life ? '✨ Mounted' : (inventory.life ? '🎒 Carried' : '🔒 Lost');
+
+    const fireSlot = document.getElementById('slot-fire-crystal');
+    const waterSlot = document.getElementById('slot-water-crystal');
+    const lifeSlot = document.getElementById('slot-life-crystal');
+
+    if (fireSlot) {
+      fireSlot.className = `crystal-slot ${altarSockets.fire ? 'mounted' : (inventory.red ? 'carried' : 'lost')}`;
+      const statusEl = fireSlot.querySelector('.slot-status');
+      if (statusEl) statusEl.textContent = fireStatus;
+    }
+    if (waterSlot) {
+      waterSlot.className = `crystal-slot ${altarSockets.water ? 'mounted' : (inventory.water ? 'carried' : 'lost')}`;
+      const statusEl = waterSlot.querySelector('.slot-status');
+      if (statusEl) statusEl.textContent = waterStatus;
+    }
+    if (lifeSlot) {
+      lifeSlot.className = `crystal-slot ${altarSockets.life ? 'mounted' : (inventory.life ? 'carried' : 'lost')}`;
+      const statusEl = lifeSlot.querySelector('.slot-status');
+      if (statusEl) statusEl.textContent = lifeStatus;
+    }
+  }
+
   showLevel3IntroDashboard() {
     if (this.level3IntroDashboard) {
       this.level3IntroDashboard.classList.add('open');
@@ -594,7 +733,48 @@ class UIManager {
     const centerX = w / 2;
     const centerY = h / 2;
 
-    if (this.currentLevel === 1) {
+    if (this.currentLevel === 0 || this.currentLevel === 'palace') {
+      // Level 0: Royal Palace Hub Mini-Map
+      const scale = 2.4;
+      const mapX = (worldX) => centerX + (worldX - this.player.position.x) * scale;
+      const mapY = (worldZ) => centerY + (worldZ - this.player.position.z) * scale;
+
+      ctx.lineWidth = 2;
+
+      // Throne Room Outer Walls (34m x 68m)
+      ctx.fillStyle = '#171a22';
+      ctx.strokeStyle = '#d4af37';
+      this.drawMapRect(ctx, mapX(-16), mapY(-32), 32 * scale, 64 * scale);
+
+      // Central Aisle Runner Carpet
+      ctx.fillStyle = this.palace && this.palace.redRestored ? 'rgba(178, 34, 34, 0.45)' : 'rgba(87, 96, 111, 0.25)';
+      this.drawMapRect(ctx, mapX(-2.6), mapY(-28), 5.2 * scale, 56 * scale);
+
+      // Royal Dais at North
+      ctx.fillStyle = '#222733';
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.6)';
+      this.drawMapRect(ctx, mapX(-7), mapY(-30), 14 * scale, 10 * scale);
+      this.drawPOIMarker(ctx, mapX(0), mapY(-26.5), '#ffd700', '👑');
+
+      // Central Altar of Elements
+      ctx.beginPath();
+      ctx.arc(mapX(0), mapY(0), 5.2 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = '#272d38';
+      ctx.fill();
+      ctx.strokeStyle = '#ffd700';
+      ctx.stroke();
+
+      // 3 Sockets on Altar
+      this.drawPOIMarker(ctx, mapX(-2.0), mapY(0.8), '#ff4757', '🔴');
+      this.drawPOIMarker(ctx, mapX(2.0), mapY(0.8), '#00d2d3', '🔵');
+      this.drawPOIMarker(ctx, mapX(0), mapY(-1.8), '#2ed573', '🟢');
+
+      // Portals
+      this.drawPOIMarker(ctx, mapX(-15), mapY(8), '#ff4757', '🚪');
+      this.drawPOIMarker(ctx, mapX(15), mapY(8), '#00d2d3', '🌊');
+      this.drawPOIMarker(ctx, mapX(0), mapY(30), '#2ed573', '🌿');
+
+    } else if (this.currentLevel === 1) {
       // Level 1: Temple Mini-Map
       const scale = 2.4;
       const mapX = (worldX) => centerX + (worldX - this.player.position.x) * scale;

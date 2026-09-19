@@ -92,10 +92,8 @@ class GameManager {
         this.renderer.domElement.requestPointerLock();
       } catch (e) {}
     }
-    if (this.ui) {
-      this.ui.showNotification('⚔️ Chapter I: Temple of Red');
-      this.ui.setObjective('Align the 3 Guardian Statues using the stone tablet clues.');
-    }
+    // Soldier awakens in the Faded Palace to receive royal mission!
+    this.transitionToPalace();
     if (window.soundSystem) {
       window.soundSystem.startAmbientSoundscape();
     }
@@ -136,6 +134,20 @@ class GameManager {
     if (urlParams.get('skipintro') === 'true' && this.intro) {
       setTimeout(() => this.intro.skip(), 100);
     }
+    if (urlParams.get('scene') === 'palace') {
+      beginAdventure();
+      if (this.intro) this.intro.finish();
+      setTimeout(() => {
+        this.transitionToPalace();
+      }, 150);
+    }
+    if (urlParams.get('level') === '1') {
+      beginAdventure();
+      if (this.intro) this.intro.finish();
+      setTimeout(() => {
+        this.transitionToLevel1();
+      }, 150);
+    }
     if (urlParams.get('level') === '2') {
       beginAdventure();
       if (this.intro) this.intro.finish();
@@ -150,12 +162,164 @@ class GameManager {
         this.transitionToLevel3();
       }, 150);
     }
+    if (urlParams.get('palace_stage')) {
+      const stage = parseInt(urlParams.get('palace_stage'), 10);
+      setTimeout(() => {
+        if (this.palace) {
+          if (stage >= 1) this.palace.socketCrystal('fire');
+          if (stage >= 2) this.palace.socketCrystal('water');
+          if (stage >= 3) this.palace.socketCrystal('life');
+        }
+      }, 350);
+    }
+  }
+
+  // ==========================================
+  // Level Transition: FADED PALACE HUB (Level 0)
+  // ==========================================
+  transitionToPalace() {
+    // 1. Hide Level 1 Temple meshes
+    if (this.templeObjects && this.templeObjects.length > 0) {
+      this.templeObjects.forEach(obj => {
+        obj.visible = false;
+        this.scene.remove(obj);
+      });
+    }
+    if (this.temple && this.temple.group) {
+      this.scene.remove(this.temple.group);
+      this.temple.group.visible = false;
+    }
+
+    // 2. Hide Level 2 Lake
+    if (this.lake && this.lake.group) {
+      this.scene.remove(this.lake.group);
+      this.lake.group.visible = false;
+    }
+
+    // 3. Hide Level 3 Forest
+    if (this.forest && this.forest.group) {
+      this.scene.remove(this.forest.group);
+      this.forest.group.visible = false;
+    }
+
+    // 4. Build Palace if needed
+    if (!this.palace) {
+      this.palace = new PalaceLevel(this.scene);
+    } else {
+      this.palace.group.visible = true;
+      if (!this.scene.children.includes(this.palace.group)) {
+        this.scene.add(this.palace.group);
+      }
+    }
+    this.currentLevel = 0;
+
+    // 5. Reposition player at south runner aisle facing North toward Altar of Elements
+    if (this.player) {
+      this.player.position.set(0, 0.0, 16);
+      this.player.velocity.set(0, 0, 0);
+      this.player.verticalVelocity = 0;
+      this.player.isGrounded = true;
+      this.player.cameraYaw = Math.PI; // Face North toward Altar
+      this.player.cameraPitch = 0.12;
+      this.player.targetRotationY = Math.PI;
+      this.player.rotationY = Math.PI;
+      this.player.characterMesh.rotation.y = Math.PI;
+      this.player.root.position.copy(this.player.position);
+    }
+
+    // 6. Update PuzzleManager & UIManager for Palace
+    if (this.puzzles) {
+      this.puzzles.setPalace(this.palace);
+    }
+    if (this.ui) {
+      this.ui.setupPalaceUI(this.palace);
+      if (this.puzzles) {
+        this.ui.updateCrystalInventory(this.puzzles.inventory, this.puzzles.altarSockets);
+      }
+    }
+
+    // 7. Display the Palace Mission Dashboard on first visit
+    if (this.ui && (!this.puzzles || (!this.puzzles.inventory.red && !this.puzzles.altarSockets.fire))) {
+      this.ui.showPalaceIntroDashboard();
+    }
+  }
+
+  // ==========================================
+  // Level Transition: CHAPTER I – TEMPLE OF RED
+  // ==========================================
+  transitionToLevel1() {
+    // 1. Hide Palace
+    if (this.palace && this.palace.group) {
+      this.scene.remove(this.palace.group);
+      this.palace.group.visible = false;
+    }
+    // 2. Hide Lake
+    if (this.lake && this.lake.group) {
+      this.scene.remove(this.lake.group);
+      this.lake.group.visible = false;
+    }
+    // 3. Hide Forest
+    if (this.forest && this.forest.group) {
+      this.scene.remove(this.forest.group);
+      this.forest.group.visible = false;
+    }
+
+    // 4. Restore Temple
+    if (!this.temple) {
+      this.temple = new TempleLevel(this.scene);
+    } else {
+      this.temple.group.visible = true;
+      if (!this.scene.children.includes(this.temple.group)) {
+        this.scene.add(this.temple.group);
+      }
+      if (this.templeObjects) {
+        this.templeObjects.forEach(obj => {
+          obj.visible = true;
+          if (!this.scene.children.includes(obj)) {
+            this.scene.add(obj);
+          }
+        });
+      }
+    }
+    this.currentLevel = 1;
+
+    // 5. Reposition player at south courtyard (y = 0.0, z = 48) facing North
+    if (this.player) {
+      this.player.position.set(0, 0.0, 48);
+      this.player.velocity.set(0, 0, 0);
+      this.player.verticalVelocity = 0;
+      this.player.isGrounded = true;
+      this.player.cameraYaw = Math.PI;
+      this.player.cameraPitch = 0.14;
+      this.player.targetRotationY = Math.PI;
+      this.player.rotationY = Math.PI;
+      this.player.characterMesh.rotation.y = Math.PI;
+      this.player.root.position.copy(this.player.position);
+    }
+
+    if (this.puzzles) {
+      this.puzzles.setLevel1(this.temple);
+    }
+    if (this.ui) {
+      this.ui.currentLevel = 1;
+      this.ui.showNotification('⚔️ Chapter I: Temple of Red');
+      this.ui.setObjective('Align the 3 Guardian Statues using the stone tablet clues.');
+      if (this.puzzles) {
+        this.ui.updateCrystalInventory(this.puzzles.inventory, this.puzzles.altarSockets);
+      }
+    }
   }
 
   // ==========================================
   // Level Transition: Level 1 -> LEVEL 2 – WATER REALM
   // ==========================================
   transitionToLevel2() {
+    // 0. Hide Palace if present
+    if (this.palace && this.palace.group) {
+      this.scene.remove(this.palace.group);
+      this.palace.group.visible = false;
+    }
+
     // 1. Completely remove Level 1 Red Temple from scene so no Level 1 assets are visible
     if (this.templeObjects && this.templeObjects.length > 0) {
       this.templeObjects.forEach(obj => {
@@ -204,6 +368,12 @@ class GameManager {
   // Level Transition: Level 2 -> LEVEL 3 – FOREST OF LIFE
   // ==========================================
   transitionToLevel3() {
+    // 0. Hide Palace if present
+    if (this.palace && this.palace.group) {
+      this.scene.remove(this.palace.group);
+      this.palace.group.visible = false;
+    }
+
     // 1. Completely remove Level 1 objects if any
     if (this.templeObjects && this.templeObjects.length > 0) {
       this.templeObjects.forEach(obj => {
@@ -277,11 +447,13 @@ class GameManager {
     if (this.intro && this.intro.active) {
       this.intro.update(delta);
     } else {
-      const colliders = this.currentLevel === 1 
-        ? (this.temple ? this.temple.colliders : []) 
-        : this.currentLevel === 2
-          ? (this.lake ? this.lake.colliders : [])
-          : (this.forest ? this.forest.colliders : []);
+      const colliders = (this.currentLevel === 0 || this.currentLevel === 'palace')
+        ? (this.palace ? this.palace.colliders : [])
+        : this.currentLevel === 1 
+          ? (this.temple ? this.temple.colliders : []) 
+          : this.currentLevel === 2
+            ? (this.lake ? this.lake.colliders : [])
+            : (this.forest ? this.forest.colliders : []);
 
       if (this.player) {
         this.player.update(delta, colliders);
@@ -289,7 +461,9 @@ class GameManager {
     }
 
     // 2. Update Active Level Dynamic Animations
-    if (this.currentLevel === 1 && this.temple) {
+    if ((this.currentLevel === 0 || this.currentLevel === 'palace') && this.palace) {
+      this.palace.update(delta, time);
+    } else if (this.currentLevel === 1 && this.temple) {
       this.temple.update(delta, time);
     } else if (this.currentLevel === 2 && this.lake) {
       this.lake.update(delta, time);

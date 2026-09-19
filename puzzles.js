@@ -17,7 +17,13 @@ class PuzzleManager {
     this.temple = temple;
     this.player = player;
     this.lake = null;
-    this.currentLevel = 1;
+    this.forest = null;
+    this.palace = null;
+    this.currentLevel = 0; // 0 = Palace Hub, 1 = Temple, 2 = Lake, 3 = Forest
+
+    // Soldier's Crystal Inventory & Palace Altar State
+    this.inventory = { red: false, water: false, life: false };
+    this.altarSockets = { fire: false, water: false, life: false };
 
     this.questState = {
       p1_statues: false,
@@ -107,6 +113,18 @@ class PuzzleManager {
     } catch (e) {
       console.log('Error saving clues:', e);
     }
+  }
+
+  setPalace(palace) {
+    this.palace = palace;
+    this.currentLevel = 0;
+    this.currentInteraction = null;
+  }
+
+  setLevel1(temple) {
+    this.temple = temple;
+    this.currentLevel = 1;
+    this.currentInteraction = null;
   }
 
   setLevel2(lake) {
@@ -208,19 +226,22 @@ class PuzzleManager {
     let closestInteractable = null;
     let minDistance = Infinity;
 
-    const items = this.currentLevel === 1 
-      ? (this.temple ? this.temple.interactables : []) 
-      : this.currentLevel === 2
-        ? (this.lake ? this.lake.interactables : [])
-        : (this.forest ? this.forest.interactables : []);
+    const items = (this.currentLevel === 0 || this.currentLevel === 'palace')
+      ? (this.palace ? this.palace.interactables : [])
+      : this.currentLevel === 1 
+        ? (this.temple ? this.temple.interactables : []) 
+        : this.currentLevel === 2
+          ? (this.lake ? this.lake.interactables : [])
+          : (this.forest ? this.forest.interactables : []);
 
     for (let item of items) {
-      if (item.isCollected || item.isClaimed || (item.type === 'door' && this.questState.doorUnlocked)) {
+      if (item.isCollected || item.isClaimed || item.isPlaced || (item.type === 'door' && this.questState.doorUnlocked)) {
         continue;
       }
 
       const dist = playerPos.distanceTo(item.position);
-      if (dist <= item.radius && dist < minDistance) {
+      const radius = item.interactionDistance || item.radius || 3.2;
+      if (dist <= radius && dist < minDistance) {
         minDistance = dist;
         closestInteractable = item;
       }
@@ -280,6 +301,15 @@ class PuzzleManager {
 
       case 'life_crystal':
         this.claimLifeCrystal(item);
+        break;
+
+      // Palace Hub
+      case 'altar_socket':
+        this.handleAltarSocketInteract(item);
+        break;
+
+      case 'palace_portal':
+        this.handlePalacePortalInteract(item);
         break;
     }
   }
@@ -416,6 +446,7 @@ class PuzzleManager {
     this.questState.gameCompleted = true;
     this.climaxActive = true;
     this.climaxTimer = 0;
+    this.inventory.red = true; // Royal Soldier secures Fire Crystal
 
     if (window.soundSystem) {
       window.soundSystem.playColorTransformation();
@@ -424,8 +455,9 @@ class PuzzleManager {
     if (window.uiManager) {
       window.uiManager.addScore(100);
       window.uiManager.completeQuestStep(3);
-      window.uiManager.showNotification('Fire Crystal Recovered! Temple Restored.');
-      window.uiManager.setObjective('Fire Crystal Recovered! Level 1 Complete.');
+      window.uiManager.updateCrystalInventory(this.inventory, this.altarSockets);
+      window.uiManager.showNotification('🔴 Fire Crystal Acquired! Return to the Palace to socket it.');
+      window.uiManager.setObjective('Return to the Palace and place the Fire Crystal into the Altar.');
     }
   }
 
@@ -591,10 +623,12 @@ class PuzzleManager {
     }
 
     if (window.uiManager) {
+      this.inventory.water = true; // Royal Soldier secures Water Crystal
       window.uiManager.addScore(200);
       window.uiManager.completeQuestStep(3);
-      window.uiManager.showNotification('💎 Water Crystal Collected! (+200 Score)');
-      window.uiManager.setObjective('Water Crystal Collected! The sacred lake is restored.');
+      window.uiManager.updateCrystalInventory(this.inventory, this.altarSockets);
+      window.uiManager.showNotification('🔵 Water Crystal Acquired! Return to the Palace to socket it.');
+      window.uiManager.setObjective('Return to the Palace and place the Water Crystal into the Altar.');
     }
   }
 
@@ -744,10 +778,103 @@ class PuzzleManager {
     }
 
     if (window.uiManager) {
+      this.inventory.life = true; // Royal Soldier secures Life Crystal
       window.uiManager.addScore(300);
       window.uiManager.completeQuestStep(3);
-      window.uiManager.showNotification('💎 Sacred Life Crystal Collected! (+300 Score)');
-      window.uiManager.setObjective('All 3 Sacred Crystals Restored! The World of Color is Saved!');
+      window.uiManager.updateCrystalInventory(this.inventory, this.altarSockets);
+      window.uiManager.showNotification('🟢 Life Crystal Acquired! Return to the Palace for the Final Ceremony.');
+      window.uiManager.setObjective('Return to the Palace and place the final Life Crystal into the Altar of Elements!');
+    }
+  }
+
+  // ==========================================
+  // Palace Hub: Altar Sockets & Portals Interaction
+  // ==========================================
+
+  handleAltarSocketInteract(item) {
+    if (!this.palace) return;
+    const element = item.element; // 'fire', 'water', 'life'
+
+    if (this.altarSockets[element]) {
+      if (window.uiManager) {
+        window.uiManager.showNotification(`✨ This socket already holds the ${element.toUpperCase()} crystal.`);
+      }
+      return;
+    }
+
+    const hasCrystal = (element === 'fire' && this.inventory.red) ||
+                       (element === 'water' && this.inventory.water) ||
+                       (element === 'life' && this.inventory.life);
+
+    if (hasCrystal) {
+      // Place into altar
+      if (element === 'fire') this.inventory.red = false;
+      if (element === 'water') this.inventory.water = false;
+      if (element === 'life') this.inventory.life = false;
+      this.altarSockets[element] = true;
+      item.isPlaced = true;
+
+      this.palace.socketCrystal(element);
+
+      if (window.soundSystem) {
+        window.soundSystem.playCrystalSocket();
+        window.soundSystem.playPalaceColorAwaken(element);
+      }
+
+      if (this.player) {
+        this.player.addCameraShake(0.32, 1.8);
+      }
+
+      if (window.uiManager) {
+        window.uiManager.updateCrystalInventory(this.inventory, this.altarSockets);
+        if (element === 'fire') {
+          window.uiManager.showNotification('🔥 Fire Crystal Embedded! Crimson Life Restored to Palace!');
+          window.uiManager.setObjective('The Dried Lake Portal (🔵) is now active! Journey to Chapter II.');
+          window.uiManager.showBanner('Palace Awakening: Crimson Color Restored!');
+        } else if (element === 'water') {
+          window.uiManager.showNotification('💧 Water Crystal Embedded! Sapphire Waters Restored to Palace!');
+          window.uiManager.setObjective('The Forest of Life Portal (🟢) is now active! Journey to Chapter III.');
+          window.uiManager.showBanner('Palace Awakening: Azure Color Restored!');
+        } else if (element === 'life') {
+          window.uiManager.showNotification('🌿 Life Crystal Embedded! Nature & All Colors Awaken!');
+          window.uiManager.setObjective('All 3 Sacred Crystals Restored to the Altar! The Kingdom is Saved!');
+          window.uiManager.showBanner('Grand Restoration: The Kingdom of Color is Saved!');
+          setTimeout(() => {
+            if (window.soundSystem) window.soundSystem.playGrandFinaleFanfare();
+            window.uiManager.showLevel3VictoryScreen();
+          }, 3200);
+        }
+      }
+    } else {
+      const realmName = element === 'fire' ? 'Chapter I: Temple of Red' : element === 'water' ? 'Chapter II: The Dried Lake' : 'Chapter III: Forest of Life';
+      if (window.uiManager) {
+        window.uiManager.showNotification(`⚠️ You must first journey to ${realmName} to recover this crystal.`);
+      }
+    }
+  }
+
+  handlePalacePortalInteract(item) {
+    if (!item.portalData) return;
+    if (!item.portalData.isOpen) {
+      if (window.uiManager) {
+        window.uiManager.showNotification(`🔒 This portal is dormant. Restore the previous crystal to the Altar.`);
+      }
+      return;
+    }
+
+    if (window.gameManager) {
+      if (window.uiManager) {
+        window.uiManager.showNotification(`🌀 Entering ${item.portalData.realmName}...`);
+      }
+      setTimeout(() => {
+        if (item.portalData.targetLevel === 1) {
+          window.gameManager.transitionToLevel1();
+        } else if (item.portalData.targetLevel === 2) {
+          window.gameManager.transitionToLevel2();
+        } else if (item.portalData.targetLevel === 3) {
+          window.gameManager.transitionToLevel3();
+        }
+      }, 500);
     }
   }
 }

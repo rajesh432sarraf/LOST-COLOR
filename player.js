@@ -592,13 +592,16 @@ class PlayerController {
     const playerFeet = this.position.y;
     const playerHead = this.position.y + 1.85;
 
-    // Courtyard boundaries (Level 1 only)
-    if (!window.gameManager || window.gameManager.currentLevel === 1) {
+    // Boundary checks per level
+    if (window.gameManager && (window.gameManager.currentLevel === 0 || window.gameManager.currentLevel === 'palace')) {
+      // Palace Hall bounds: Width 32m (X: -15.5 to 15.5), Length 64m (Z: -31.5 to 31.5)
+      if (Math.abs(x) > 15.5 || Math.abs(z) > 31.5) return true;
+    } else if (!window.gameManager || window.gameManager.currentLevel === 1) {
       if (z > 20) {
         if (Math.abs(x) > 27 || z > 56) return true;
       }
     } else {
-      // Level 2 Lake perimeter boundary (radius 74m)
+      // Level 2 Lake & Level 3 Forest perimeter boundary (radius 74m)
       if (x * x + z * z > 74 * 74) return true;
     }
 

@@ -67,6 +67,27 @@
       </div>
     </header>
 
+    <!-- Royal Crystal Inventory Bar (Top Center) -->
+    <div id="crystal-inventory-bar" class="crystal-inventory-bar">
+      <div class="crystal-slots-container">
+        <div class="crystal-slot lost" id="slot-fire-crystal" title="Fire Crystal (Chapter I)">
+          <span class="slot-icon">🔴</span>
+          <span class="slot-label">Fire Crystal</span>
+          <span class="slot-status">🔒 Lost</span>
+        </div>
+        <div class="crystal-slot lost" id="slot-water-crystal" title="Water Crystal (Chapter II)">
+          <span class="slot-icon">🔵</span>
+          <span class="slot-label">Water Crystal</span>
+          <span class="slot-status">🔒 Lost</span>
+        </div>
+        <div class="crystal-slot lost" id="slot-life-crystal" title="Life Crystal (Chapter III)">
+          <span class="slot-icon">🟢</span>
+          <span class="slot-label">Life Crystal</span>
+          <span class="slot-status">🔒 Lost</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Center Reticle & Dynamic Contextual Prompt -->
     <div class="reticle-container">
       <div class="reticle-dot"></div>
@@ -167,7 +188,35 @@
       </div>
     </div>
     <div class="victory-buttons">
-      <button class="btn-primary btn-glow-gold btn-large" id="btn-continue-level2">NEXT LEVEL ➜</button>
+      <button class="btn-primary btn-glow-gold btn-large" id="btn-palace-from-l1" style="background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%); margin-bottom: 8px;">RETURN TO PALACE TO SOCKET CRYSTAL 🏛️</button>
+      <button class="btn-primary btn-glow-gold btn-large" id="btn-continue-level2">CONTINUE TO LEVEL 2 ➜</button>
+    </div>
+  </div>
+
+  <!-- PALACE PROLOGUE DASHBOARD -->
+  <div id="palace-intro-dashboard" class="dashboard-modal">
+    <div class="dashboard-card" style="max-width: 580px; border-color: rgba(255, 215, 0, 0.45); box-shadow: 0 0 45px rgba(255, 215, 0, 0.25);">
+      <div class="dashboard-tag" style="background: rgba(255, 215, 0, 0.2); color: #ffd700; border-color: rgba(255, 215, 0, 0.5);">ROYAL MISSION</div>
+      <h1 class="dashboard-title" style="color: #ffd700; text-shadow: 0 0 16px rgba(255, 215, 0, 0.85);">🏛️ THE FADED PALACE</h1>
+      <h2 class="dashboard-subtitle">Sanctum of the Royal Soldier</h2>
+      <div class="dashboard-divider" style="background: linear-gradient(90deg, transparent, #ffd700, transparent);"></div>
+
+      <div class="dashboard-info-box">
+        <div class="info-row">
+          <span class="info-label">Your Duty:</span>
+          <span class="info-val">Royal Guardian, our Palace and Kingdom have been stripped of all colors by the Color Thief.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">The Quest:</span>
+          <span class="info-val">Journey through the 3 Ancient Portals, recover the 3 Primal Crystals, and mount them onto the Altar of Elements.</span>
+        </div>
+        <div class="info-row reward-highlight" style="background: rgba(255, 215, 0, 0.12); border-color: rgba(255, 215, 0, 0.4);">
+          <span class="info-label" style="color: #ffd700;">First Task:</span>
+          <span class="info-val" style="color: #fff;">Enter Chapter I Portal (🔴 Temple of Red) to find the Fire Crystal.</span>
+        </div>
+      </div>
+
+      <button class="btn-primary btn-glow-gold btn-large" id="btn-start-palace" style="background: linear-gradient(135deg, #d4af37 0%, #f39c12 100%); box-shadow: 0 0 25px rgba(243, 156, 18, 0.7); font-weight: bold; letter-spacing: 1px;">ACCEPT ROYAL MISSION ⚔️</button>
     </div>
   </div>
 
@@ -216,6 +265,7 @@
       </div>
     </div>
     <div class="victory-buttons">
+      <button class="btn-primary btn-glow-blue btn-large" id="btn-palace-from-l2" style="background: linear-gradient(135deg, #0984e3 0%, #00cec9 100%); margin-bottom: 8px;">RETURN TO PALACE TO SOCKET CRYSTAL 🏛️</button>
       <button class="btn-primary btn-glow-blue btn-large" id="btn-continue-level3">CONTINUE TO LEVEL 3 ➜</button>
     </div>
   </div>
@@ -281,6 +331,7 @@
       </div>
     </div>
     <div class="victory-buttons">
+      <button class="btn-primary btn-glow-gold btn-large" id="btn-palace-from-l3" style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); margin-bottom: 8px;">RETURN TO PALACE FOR FINAL CEREMONY 🏛️</button>
       <button class="btn-primary btn-glow-gold btn-large" id="btn-play-again">PLAY AGAIN ↺</button>
     </div>
   </div>
@@ -348,6 +399,7 @@
   <script src="temple.js"></script>
   <script src="lake.js"></script>
   <script src="forest.js"></script>
+  <script src="palace.js"></script>
   <script src="puzzles.js"></script>
   <script src="postprocessing.js"></script>
   <script src="intro.js"></script>

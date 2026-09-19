@@ -1544,6 +1544,302 @@ class TextureGenerator {
     this.cache[key] = texture;
     return texture;
   }
+
+  // 16. Royal Palace Marble Checkerboard Floor
+  getPalaceMarbleFloor(width = 512, height = 512, isFaded = true) {
+    const key = `palace_marble_${isFaded}_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+    const tileSize = width / 8; // 8x8 tiles
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const isWhite = (r + c) % 2 === 0;
+        if (isFaded) {
+          ctx.fillStyle = isWhite ? '#2c313c' : '#1a1d24';
+        } else {
+          ctx.fillStyle = isWhite ? '#e8ecf1' : '#1f242d';
+        }
+        ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+
+        // Subtle tile bevel border
+        ctx.strokeStyle = isFaded ? 'rgba(0,0,0,0.45)' : 'rgba(218, 165, 32, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(c * tileSize + 1, r * tileSize + 1, tileSize - 2, tileSize - 2);
+
+        // Marble veins
+        ctx.strokeStyle = isFaded ? 'rgba(255,255,255,0.04)' : (isWhite ? 'rgba(180,180,180,0.18)' : 'rgba(255,215,0,0.08)');
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(c * tileSize + Math.random() * tileSize, r * tileSize);
+        ctx.bezierCurveTo(
+          c * tileSize + tileSize * 0.3, r * tileSize + tileSize * 0.4,
+          c * tileSize + tileSize * 0.7, r * tileSize + tileSize * 0.6,
+          c * tileSize + Math.random() * tileSize, (r + 1) * tileSize
+        );
+        ctx.stroke();
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 17. Royal Palace Carpet Runner (Center aisle)
+  getPalaceRunnerCarpet(width = 256, height = 512, isFaded = true) {
+    const key = `palace_runner_${isFaded}_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    // Base carpet
+    ctx.fillStyle = isFaded ? '#353b48' : '#8b0000'; // Deep royal crimson or faded slate
+    ctx.fillRect(0, 0, width, height);
+
+    // Inner velvet field
+    ctx.fillStyle = isFaded ? '#2f3640' : '#b22222';
+    ctx.fillRect(20, 0, width - 40, height);
+
+    // Golden / faded embroidered border
+    ctx.strokeStyle = isFaded ? '#57606f' : '#ffd700';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(18, 0, width - 36, height);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(26, 0, width - 52, height);
+
+    // Repeating royal fleur / diamond motif down the runner
+    const patternStep = 64;
+    for (let y = 32; y < height; y += patternStep) {
+      ctx.fillStyle = isFaded ? 'rgba(255,255,255,0.06)' : 'rgba(255, 215, 0, 0.45)';
+      ctx.beginPath();
+      ctx.moveTo(width / 2, y - 18);
+      ctx.lineTo(width / 2 + 16, y);
+      ctx.lineTo(width / 2, y + 18);
+      ctx.lineTo(width / 2 - 16, y);
+      ctx.closePath();
+      ctx.fill();
+
+      // Center gold dot
+      ctx.fillStyle = isFaded ? '#718093' : '#ffd700';
+      ctx.beginPath();
+      ctx.arc(width / 2, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 18. Royal Palace Fluted Column / Pillar
+  getPalacePillarTexture(width = 256, height = 512, isFaded = true) {
+    const key = `palace_pillar_${isFaded}_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    // Base stone
+    ctx.fillStyle = isFaded ? '#2f3542' : '#f1f2f6';
+    ctx.fillRect(0, 0, width, height);
+
+    // Vertical fluting grooves
+    const flutes = 16;
+    const fluteW = width / flutes;
+    for (let i = 0; i < flutes; i++) {
+      const grad = ctx.createLinearGradient(i * fluteW, 0, (i + 1) * fluteW, 0);
+      if (isFaded) {
+        grad.addColorStop(0, 'rgba(0,0,0,0.5)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.06)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+      } else {
+        grad.addColorStop(0, 'rgba(0,0,0,0.22)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.4)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.22)');
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(i * fluteW, 0, fluteW, height);
+    }
+
+    // Gilded rings at top and bottom
+    ctx.fillStyle = isFaded ? '#57606f' : '#d4af37';
+    ctx.fillRect(0, 0, width, 18);
+    ctx.fillRect(0, height - 18, width, 18);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 19. Royal Palace Tapestry Banner (Wall Hangings)
+  getPalaceTapestry(type = 'royal', isFaded = true, width = 256, height = 512) {
+    const key = `palace_tapestry_${type}_${isFaded}_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    let bgColor = isFaded ? '#2c313c' : (type === 'fire' ? '#961c1c' : type === 'water' ? '#0f4c81' : type === 'life' ? '#1b5e20' : '#4a154b');
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+
+    // Gold/Faded border
+    ctx.strokeStyle = isFaded ? '#57606f' : '#ffd700';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(10, 10, width - 20, height - 20);
+
+    // Royal Crest / Emblem in Center
+    ctx.fillStyle = isFaded ? 'rgba(255,255,255,0.1)' : 'rgba(255, 215, 0, 0.75)';
+    ctx.strokeStyle = isFaded ? '#747d8c' : '#ffd700';
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.arc(width / 2, height * 0.38, 50, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Crest Symbol: Crown or Element
+    ctx.fillStyle = isFaded ? '#a4b0be' : '#ffffff';
+    ctx.font = 'bold 44px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const icon = type === 'fire' ? '🔥' : type === 'water' ? '💧' : type === 'life' ? '🌿' : '👑';
+    ctx.fillText(icon, width / 2, height * 0.38);
+
+    // Lower decorative triangle pennant shape
+    ctx.beginPath();
+    ctx.moveTo(20, height - 40);
+    ctx.lineTo(width / 2, height - 10);
+    ctx.lineTo(width - 20, height - 40);
+    ctx.strokeStyle = isFaded ? '#57606f' : '#ffd700';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 20. Gothic Royal Stained Glass Window
+  getStainedGlassWindow(element = 'all', isLit = true, width = 256, height = 512) {
+    const key = `stained_glass_${element}_${isLit}_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    // Stone Gothic Arch Border
+    ctx.fillStyle = '#1e2129';
+    ctx.fillRect(0, 0, width, height);
+
+    // Window glass area
+    const glassW = width - 24;
+    const glassH = height - 24;
+
+    if (!isLit) {
+      // Drained / Dark Gray Glass
+      ctx.fillStyle = '#222733';
+      ctx.fillRect(12, 12, glassW, glassH);
+    } else {
+      // Radiant Glowing Colored Glass
+      const grad = ctx.createLinearGradient(12, 12, width - 12, height - 12);
+      if (element === 'fire') {
+        grad.addColorStop(0, '#ff4757');
+        grad.addColorStop(0.5, '#ffa502');
+        grad.addColorStop(1, '#ff6348');
+      } else if (element === 'water') {
+        grad.addColorStop(0, '#00d2d3');
+        grad.addColorStop(0.5, '#1e90ff');
+        grad.addColorStop(1, '#54a0ff');
+      } else if (element === 'life') {
+        grad.addColorStop(0, '#2ed573');
+        grad.addColorStop(0.5, '#10ac84');
+        grad.addColorStop(1, '#7bed9f');
+      } else {
+        grad.addColorStop(0, '#ff4757');
+        grad.addColorStop(0.33, '#1e90ff');
+        grad.addColorStop(0.66, '#2ed573');
+        grad.addColorStop(1, '#ffd700');
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(12, 12, glassW, glassH);
+    }
+
+    // Lead caming lattice (black lead lines separating stained glass panes)
+    ctx.strokeStyle = '#101217';
+    ctx.lineWidth = 4;
+
+    // Rose rosette at top
+    ctx.beginPath();
+    ctx.arc(width / 2, 80, 50, 0, Math.PI * 2);
+    ctx.stroke();
+
+    for (let i = 0; i < 8; i++) {
+      const ang = (i * Math.PI) / 4;
+      ctx.beginPath();
+      ctx.moveTo(width / 2, 80);
+      ctx.lineTo(width / 2 + Math.cos(ang) * 50, 80 + Math.sin(ang) * 50);
+      ctx.stroke();
+    }
+
+    // Vertical and horizontal lead tracery
+    for (let y = 140; y < height - 20; y += 45) {
+      ctx.beginPath();
+      ctx.moveTo(12, y);
+      ctx.lineTo(width - 12, y);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 130);
+    ctx.lineTo(width / 2, height - 12);
+    ctx.stroke();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache[key] = texture;
+    return texture;
+  }
+
+  // 21. Altar of Elements Socket Runes
+  getAltarSocketRune(element = 'fire', isLit = false, width = 256, height = 256) {
+    const key = `altar_socket_rune_${element}_${isLit}_${width}x${height}`;
+    if (this.cache[key]) return this.cache[key];
+
+    const { canvas, ctx } = this.createCanvas(width, height);
+
+    ctx.fillStyle = '#1f242d';
+    ctx.fillRect(0, 0, width, height);
+
+    // Concentric runic ring
+    ctx.strokeStyle = isLit 
+      ? (element === 'fire' ? '#ff4757' : element === 'water' ? '#00d2d3' : '#2ed573') 
+      : '#485460';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(width / 2, height / 2, 110, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Center icon
+    ctx.fillStyle = isLit ? '#ffffff' : '#718093';
+    ctx.font = 'bold 70px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const sym = element === 'fire' ? '🔥' : element === 'water' ? '💧' : '🌱';
+    ctx.fillText(sym, width / 2, height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache[key] = texture;
+    return texture;
+  }
 }
 
 window.textureGen = new TextureGenerator();

@@ -905,6 +905,106 @@ class SoundSystem {
       this.introOscs = [];
     }
   }
+
+  // Socketing crystal into the Altar of Elements
+  playCrystalSocket() {
+    if (!this.initialized || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Resonant stone locking thud
+    const oscThud = this.ctx.createOscillator();
+    const gainThud = this.ctx.createGain();
+    oscThud.type = 'triangle';
+    oscThud.frequency.setValueAtTime(160, now);
+    oscThud.frequency.exponentialRampToValueAtTime(50, now + 0.35);
+    gainThud.gain.setValueAtTime(0.45, now);
+    gainThud.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    oscThud.connect(gainThud);
+    gainThud.connect(this.sfxGain);
+    oscThud.start(now);
+    oscThud.stop(now + 0.45);
+
+    // 2. High crystalline bell ping
+    const oscChime = this.ctx.createOscillator();
+    const gainChime = this.ctx.createGain();
+    oscChime.type = 'sine';
+    oscChime.frequency.setValueAtTime(1046.5, now + 0.05); // High C6
+    gainChime.gain.setValueAtTime(0.001, now);
+    gainChime.gain.linearRampToValueAtTime(0.35, now + 0.06);
+    gainChime.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+    oscChime.connect(gainChime);
+    gainChime.connect(this.sfxGain);
+    oscChime.start(now + 0.05);
+    oscChime.stop(now + 1.9);
+  }
+
+  // Palace color awakening wave
+  playPalaceColorAwaken(element = 'fire') {
+    if (!this.initialized || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    const chords = {
+      fire: [261.63, 329.63, 392.00, 523.25],   // C Major
+      water: [293.66, 369.99, 440.00, 587.33],  // D Major
+      life: [392.00, 493.88, 587.33, 783.99]    // G Major
+    };
+    const notes = chords[element] || chords.fire;
+
+    // Sub-bass sweep
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(65, now);
+    subOsc.frequency.exponentialRampToValueAtTime(130, now + 0.8);
+    subGain.gain.setValueAtTime(0.3, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+    subOsc.start(now);
+    subOsc.stop(now + 1.3);
+
+    // Harmonic arpeggio
+    notes.forEach((freq, i) => {
+      const step = now + 0.15 + i * 0.12;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, step);
+      gain.gain.setValueAtTime(0.22, step);
+      gain.gain.exponentialRampToValueAtTime(0.001, step + 1.6);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(step);
+      osc.stop(step + 1.7);
+    });
+  }
+
+  // Grand finale fanfare when all 3 crystals are mounted
+  playGrandFinaleFanfare() {
+    if (!this.initialized || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    const chords = [
+      { notes: [349.23, 440.00, 523.25], time: now + 0.1 },  // F Major
+      { notes: [392.00, 493.88, 587.33], time: now + 0.7 },  // G Major
+      { notes: [523.25, 659.25, 783.99, 1046.5], time: now + 1.4 } // C Major Octave
+    ];
+
+    chords.forEach(c => {
+      c.notes.forEach(freq => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, c.time);
+        gain.gain.setValueAtTime(0.25, c.time);
+        gain.gain.exponentialRampToValueAtTime(0.001, c.time + 2.4);
+        osc.connect(gain);
+        gain.connect(this.musicGain);
+        osc.start(c.time);
+        osc.stop(c.time + 2.5);
+      });
+    });
+  }
 }
 
 window.soundSystem = new SoundSystem();
