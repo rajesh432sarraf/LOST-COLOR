@@ -100,21 +100,16 @@ class CinematicIntro {
         setup: () => {
           if (this.colorThiefVortex) this.colorThiefVortex.visible = true;
           if (window.soundSystem) window.soundSystem.playTheftVortexSound();
-          this.cameraTrauma = 0.85;
-          document.body.classList.add('screen-rumble');
         },
         update: (progress) => {
-          // Dynamic desaturation shockwave with pulsing shudder
-          const drain = Math.pow(progress, 1.35) * 1.5;
-          const wobble = Math.sin(progress * Math.PI * 8) * (1.0 - progress) * 0.12;
-          const sat = Math.max(0.0, 1.0 - drain + wobble);
+          // Dynamic smooth desaturation shockwave
+          const drain = Math.pow(progress, 1.3) * 1.5;
+          const sat = Math.max(0.0, 1.0 - drain);
           if (this.postProcessing) {
             this.postProcessing.setWorldSaturation(sat);
           }
-          this.cameraTrauma = Math.max(0.15, (1.0 - progress * 0.5) * 0.8);
         },
         teardown: () => {
-          document.body.classList.remove('screen-rumble');
           if (this.colorThiefVortex) this.colorThiefVortex.visible = false;
         }
       },
@@ -145,6 +140,12 @@ class CinematicIntro {
         setup: () => {
           if (this.postProcessing) this.postProcessing.setWorldSaturation(1.0);
           if (window.soundSystem) window.soundSystem.playHeroTheme();
+          if (this.player) {
+            this.player.position.set(0, 0, 46);
+            this.player.root.position.set(0, 0, 46);
+            this.player.characterMesh.rotation.y = Math.PI;
+            this.player.root.visible = true;
+          }
         }
       },
       {
@@ -221,8 +222,8 @@ class CinematicIntro {
     core.scale.set(0.75, 1.45, 0.75);
     group.add(core);
 
-    // Glowing orbital energy ring
-    const ringGeo = new THREE.TorusGeometry(1.02, 0.045, 10, 36);
+    // Glowing dual orbital energy rings (smooth celestial gyroscopes)
+    const ringGeo = new THREE.TorusGeometry(1.02, 0.038, 12, 48);
     const ringMat = new THREE.MeshBasicMaterial({
       color: colorHex,
       transparent: true,
@@ -233,32 +234,17 @@ class CinematicIntro {
     ring.rotation.x = Math.PI / 2.2;
     group.add(ring);
 
-    // Sparkling particle halo
-    const pCount = 36;
-    const pGeo = new THREE.BufferGeometry();
-    const pPos = new Float32Array(pCount * 3);
-    for (let i = 0; i < pCount; i++) {
-      const a = (i / pCount) * Math.PI * 2;
-      const r = 0.85 + Math.random() * 0.45;
-      pPos[i * 3]     = Math.cos(a) * r;
-      pPos[i * 3 + 1] = (Math.random() - 0.5) * 1.8;
-      pPos[i * 3 + 2] = Math.sin(a) * r;
-    }
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const sparkles = new THREE.Points(pGeo, new THREE.PointsMaterial({
-      color: colorHex,
-      size: 0.24,
-      transparent: true,
-      opacity: 0.88,
-      blending: THREE.AdditiveBlending
-    }));
-    group.add(sparkles);
+    const ring2Geo = new THREE.TorusGeometry(1.15, 0.030, 12, 48);
+    const ring2 = new THREE.Mesh(ring2Geo, ringMat);
+    ring2.rotation.y = Math.PI / 3.0;
+    ring2.rotation.z = Math.PI / 4.0;
+    group.add(ring2);
 
     // Dynamic colored point light illuminating surroundings
     const light = new THREE.PointLight(colorHex, 3.8, 12, 1.4);
     group.add(light);
 
-    group.userData = { mesh, core, ring, sparkles, light, initialY: y };
+    group.userData = { mesh, core, ring, ring2, light, initialY: y };
     return group;
   }
 
@@ -270,54 +256,27 @@ class CinematicIntro {
     this.colorThiefVortex.position.set(0, 26, 20);
     this.colorThiefVortex.visible = false;
 
-    // 1. Accretion Disks (Dark void rings)
+    // Accretion Disks (Dark void concentric energy rings)
     this.vortexRings = [];
-    const ringColors = [0x2c003e, 0x150024, 0x4a0e4e];
-    const ringRadii = [4.2, 7.5, 11.0];
+    const ringColors = [0x2c003e, 0x150024, 0x4a0e4e, 0x220033, 0x5a1262];
+    const ringRadii = [3.5, 5.8, 8.2, 10.5, 13.0];
 
     ringRadii.forEach((r, idx) => {
       const ringGeo = new THREE.TorusGeometry(r, 0.28, 8, 48);
       const ringMat = new THREE.MeshBasicMaterial({
-        color: ringColors[idx],
+        color: ringColors[idx % ringColors.length],
         transparent: true,
         opacity: 0.75,
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide
       });
       const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      ringMesh.rotation.x = Math.PI / 2 + (idx * 0.12);
+      ringMesh.rotation.x = Math.PI / 2 + (idx * 0.14);
       this.colorThiefVortex.add(ringMesh);
       this.vortexRings.push(ringMesh);
     });
 
-    // 2. Swirling Dark Void Particles
-    const pCount = 380;
-    const pGeo = new THREE.BufferGeometry();
-    const pPos = new Float32Array(pCount * 3);
-    const pSpeeds = [];
-
-    for (let i = 0; i < pCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 2.0 + Math.random() * 12.0;
-      pPos[i * 3]     = Math.cos(angle) * radius;
-      pPos[i * 3 + 1] = (Math.random() - 0.5) * 4.0;
-      pPos[i * 3 + 2] = Math.sin(angle) * radius;
-      pSpeeds.push({ angle, radius, speed: 1.2 + Math.random() * 2.5, ySpeed: (Math.random() - 0.5) * 0.8 });
-    }
-
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const pMat = new THREE.PointsMaterial({
-      color: 0xaa22ee,
-      size: 0.35,
-      transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending
-    });
-    this.vortexParticles = new THREE.Points(pGeo, pMat);
-    this.vortexParticles.userData = { speeds: pSpeeds };
-    this.colorThiefVortex.add(this.vortexParticles);
-
-    // 3. Void Center Light
+    // Void Center Light
     this.vortexLight = new THREE.PointLight(0x8822ff, 5.0, 35);
     this.colorThiefVortex.add(this.vortexLight);
 
@@ -325,46 +284,12 @@ class CinematicIntro {
   }
 
   // ==========================================
-  // Atmospheric Particles: Motes & Falling Ash
+  // Atmospheric Particles (Pure Cinematic Clarity)
   // ==========================================
   initAtmosphericParticles() {
-    // 1. Warm Golden Firefly Motes (Acts I-II)
-    const mCount = 240;
-    const mGeo = new THREE.BufferGeometry();
-    const mPos = new Float32Array(mCount * 3);
-    for (let i = 0; i < mCount; i++) {
-      mPos[i * 3]     = (Math.random() - 0.5) * 60;
-      mPos[i * 3 + 1] = 1.0 + Math.random() * 20.0;
-      mPos[i * 3 + 2] = 10 + Math.random() * 70;
-    }
-    mGeo.setAttribute('position', new THREE.BufferAttribute(mPos, 3));
-    this.cinematicMotes = new THREE.Points(mGeo, new THREE.PointsMaterial({
-      color: 0xffdf88,
-      size: 0.24,
-      transparent: true,
-      opacity: 0.7,
-      blending: THREE.AdditiveBlending
-    }));
-    this.scene.add(this.cinematicMotes);
-
-    // 2. Somber Falling Gray Ash (Acts IV-V)
-    const aCount = 280;
-    const aGeo = new THREE.BufferGeometry();
-    const aPos = new Float32Array(aCount * 3);
-    for (let i = 0; i < aCount; i++) {
-      aPos[i * 3]     = (Math.random() - 0.5) * 45;
-      aPos[i * 3 + 1] = Math.random() * 18.0;
-      aPos[i * 3 + 2] = 15 + Math.random() * 55;
-    }
-    aGeo.setAttribute('position', new THREE.BufferAttribute(aPos, 3));
-    this.fallingAsh = new THREE.Points(aGeo, new THREE.PointsMaterial({
-      color: 0xaaaaaa,
-      size: 0.22,
-      transparent: true,
-      opacity: 0.55
-    }));
-    this.fallingAsh.visible = false;
-    this.scene.add(this.fallingAsh);
+    // No artificial square pixel billboards - pristine filmic atmosphere
+    this.cinematicMotes = null;
+    this.fallingAsh = null;
   }
 
   initInputListeners() {
@@ -499,19 +424,19 @@ class CinematicIntro {
 
       // Act V: Hero Awakening Dutch Orbit to Over-the-Shoulder
       case 'hero_spiral': {
-        const spiralAngle = -1.4 + ease * 2.4;
-        const dist = 3.6 - Math.sin(progress * Math.PI) * 0.8;
+        const orbitAngle = Math.PI - ease * (Math.PI * 0.95);
+        const dist = 3.2 - Math.sin(progress * Math.PI) * 0.5;
         camPos.set(
-          current.target.x + Math.sin(spiralAngle) * dist,
-          0.9 + ease * 1.1,
-          current.target.z - Math.cos(spiralAngle) * dist
+          current.target.x + Math.sin(orbitAngle) * dist,
+          1.45 + ease * 0.75,
+          current.target.z + Math.cos(orbitAngle) * dist
         );
         lookTarget.lerpVectors(
-          new THREE.Vector3(current.target.x, current.target.y + 0.1, current.target.z),
-          new THREE.Vector3(0, 1.8, 28),
-          Math.max(0, (progress - 0.6) * 2.5)
+          new THREE.Vector3(current.target.x, current.target.y + 0.12, current.target.z),
+          new THREE.Vector3(0, 1.8, 20),
+          Math.max(0, (progress - 0.55) * 2.22)
         );
-        roll = -Math.sin(progress * Math.PI) * 0.035;
+        roll = -Math.sin(progress * Math.PI) * 0.025;
         break;
       }
 
@@ -528,18 +453,7 @@ class CinematicIntro {
       }
     }
 
-    // Add subtle organic handheld steadicam breathing noise
-    const noise = this.getHandheldSteadicamNoise(this.totalTimer);
-    camPos.add(noise);
-
-    // Add camera trauma jitter during violent events (Act III Cataclysm)
-    if (this.cameraTrauma > 0.01) {
-      const shakeAmt = this.cameraTrauma * this.cameraTrauma * 0.65;
-      camPos.x += (Math.random() - 0.5) * shakeAmt;
-      camPos.y += (Math.random() - 0.5) * shakeAmt;
-      camPos.z += (Math.random() - 0.5) * shakeAmt;
-    }
-
+    // Pure, butter-smooth cinematic gimbal motion without camera jitter or vibration
     this.camera.position.copy(camPos);
     this.currentLookAt.copy(lookTarget);
     this.camera.lookAt(this.currentLookAt);
@@ -554,68 +468,33 @@ class CinematicIntro {
       current.update(progress);
     }
 
-    // 1. Animate Holographic Crystals
+    // 1. Animate Holographic Crystals (Dual Celestial Gyroscope Rings)
     if (this.crystalsGroup && this.crystalsGroup.visible && this.crystals) {
       this.crystals.forEach((c, idx) => {
         c.userData.mesh.rotation.y += delta * (1.6 + idx * 0.45);
         c.userData.mesh.rotation.x = Math.sin(this.totalTimer * 2.2 + idx) * 0.2;
         c.userData.core.rotation.y -= delta * 2.2;
         c.userData.ring.rotation.z += delta * 2.4;
-        c.userData.sparkles.rotation.y += delta * 1.3;
+        if (c.userData.ring2) {
+          c.userData.ring2.rotation.x += delta * 1.8;
+          c.userData.ring2.rotation.y += delta * 1.2;
+        }
         c.position.y = c.userData.initialY + Math.sin(this.totalTimer * 2.8 + idx * 1.4) * 0.09;
         c.userData.light.intensity = 3.4 + Math.sin(this.totalTimer * 4.0 + idx) * 0.8;
       });
     }
 
-    // 2. Animate Color Thief Dark Vortex in Act III
+    // 2. Animate Color Thief Dark Vortex in Act III (Accretion Disks)
     if (this.colorThiefVortex && this.colorThiefVortex.visible) {
       if (this.vortexRings) {
         this.vortexRings.forEach((r, idx) => {
-          r.rotation.z += delta * (2.8 - idx * 0.9);
-          r.rotation.x = Math.PI / 2 + Math.sin(this.totalTimer * 3.0 + idx) * 0.15;
+          r.rotation.z += delta * (2.8 - idx * 0.7);
+          r.rotation.x = Math.PI / 2 + Math.sin(this.totalTimer * 2.5 + idx) * 0.12;
         });
       }
-      if (this.vortexParticles && this.vortexParticles.geometry) {
-        const pos = this.vortexParticles.geometry.attributes.position.array;
-        const speeds = this.vortexParticles.userData.speeds;
-        for (let i = 0; i < speeds.length; i++) {
-          const s = speeds[i];
-          s.angle += delta * s.speed;
-          s.radius -= delta * 1.5;
-          if (s.radius < 0.8) s.radius = 11.5;
-          pos[i * 3]     = Math.cos(s.angle) * s.radius;
-          pos[i * 3 + 1] = Math.sin(s.angle * 2.0) * 1.8;
-          pos[i * 3 + 2] = Math.sin(s.angle) * s.radius;
-        }
-        this.vortexParticles.geometry.attributes.position.needsUpdate = true;
-      }
       if (this.vortexLight) {
-        this.vortexLight.intensity = 4.0 + Math.sin(this.totalTimer * 16) * 2.5;
+        this.vortexLight.intensity = 4.0 + Math.sin(this.totalTimer * 12) * 2.0;
       }
-    }
-
-    // 3. Animate Golden Motes
-    if (this.cinematicMotes && this.cinematicMotes.visible && this.cinematicMotes.geometry) {
-      const pos = this.cinematicMotes.geometry.attributes.position.array;
-      const count = pos.length / 3;
-      for (let i = 0; i < count; i++) {
-        pos[i * 3 + 1] += Math.sin(this.totalTimer * 1.5 + i) * 0.008;
-      }
-      this.cinematicMotes.geometry.attributes.position.needsUpdate = true;
-    }
-
-    // 4. Animate Falling Cold Ash (Acts IV-V)
-    if (this.fallingAsh && this.fallingAsh.visible && this.fallingAsh.geometry) {
-      const pos = this.fallingAsh.geometry.attributes.position.array;
-      const count = pos.length / 3;
-      for (let i = 0; i < count; i++) {
-        pos[i * 3 + 1] -= delta * 1.4;
-        pos[i * 3]     += Math.sin(this.totalTimer + i) * 0.015;
-        if (pos[i * 3 + 1] < 0.2) {
-          pos[i * 3 + 1] = 16.0;
-        }
-      }
-      this.fallingAsh.geometry.attributes.position.needsUpdate = true;
     }
 
     // Advance to next scene
@@ -642,11 +521,7 @@ class CinematicIntro {
   }
 
   getHandheldSteadicamNoise(t) {
-    return new THREE.Vector3(
-      Math.sin(t * 1.6) * 0.045 + Math.sin(t * 3.2) * 0.02,
-      Math.cos(t * 1.3) * 0.035 + Math.cos(t * 2.7) * 0.015,
-      Math.sin(t * 2.1) * 0.025
-    );
+    return new THREE.Vector3(0, 0, 0);
   }
 
   skip() {
@@ -656,7 +531,6 @@ class CinematicIntro {
 
   finish() {
     this.active = false;
-    document.body.classList.remove('screen-rumble');
 
     if (this.scenes[this.currentSceneIndex] && this.scenes[this.currentSceneIndex].teardown) {
       this.scenes[this.currentSceneIndex].teardown();

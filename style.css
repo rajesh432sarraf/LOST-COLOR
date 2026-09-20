@@ -287,18 +287,19 @@ body.cinematic-active .letterbox.bottom {
 }
 
 .reticle-dot {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
   transition: var(--transition-smooth);
 }
 
 .reticle-dot.interactable {
   background: var(--accent-red);
-  box-shadow: 0 0 12px var(--accent-red-glow), 0 0 20px var(--accent-red);
-  transform: scale(1.8);
+  box-shadow: 0 0 12px var(--accent-red-glow), 0 0 18px var(--accent-red);
+  transform: scale(2.0);
+  opacity: 1;
 }
 
 .interaction-prompt {
@@ -1408,18 +1409,21 @@ body.cinematic-active .cinematic-vignette {
   opacity: 1;
 }
 
-/* Cataclysm Violent Screen Shake */
-@keyframes cataclysm-rumble {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  20% { transform: translate(-3.5px, 2.5px) rotate(-0.35deg); }
-  40% { transform: translate(3.5px, -2.5px) rotate(0.4deg); }
-  60% { transform: translate(-2.5px, -3.5px) rotate(-0.25deg); }
-  80% { transform: translate(2.5px, 3.5px) rotate(0.25deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
-}
-
-body.screen-rumble {
-  animation: cataclysm-rumble 0.08s infinite ease-in-out;
+body.cinematic-active header,
+body.cinematic-active .hud-header,
+body.cinematic-active .quest-tracker,
+body.cinematic-active .minimap-container,
+body.cinematic-active #crystal-inventory-bar,
+body.cinematic-active .reticle-container,
+body.cinematic-active #interaction-prompt,
+body.cinematic-active .stats-hud,
+body.cinematic-active #journal-btn,
+body.cinematic-active #audio-control-btn,
+body.cinematic-active #quest-tracker,
+body.cinematic-active #minimap-box {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 #intro-overlay {
