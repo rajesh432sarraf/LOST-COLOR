@@ -22,6 +22,12 @@ class UIManager {
     this.reticleDot = document.querySelector('.reticle-dot');
     this.promptEl = document.querySelector('.interaction-prompt');
     this.promptText = document.getElementById('prompt-text');
+    if (this.promptEl) {
+      this.promptEl.style.cursor = 'pointer';
+      this.promptEl.addEventListener('click', () => {
+        if (window.puzzleManager) window.puzzleManager.handleInteract();
+      });
+    }
     this.questSteps = document.querySelectorAll('.quest-step');
     this.keySlot = document.getElementById('key-slot');
 
@@ -589,37 +595,64 @@ class UIManager {
       this.keySlot.style.display = 'none';
     }
 
-    // Dynamic Quest Checklist & Objective Sync
+    this.updatePalaceQuestProgress();
+  }
+
+  updatePalaceQuestProgress() {
     const pm = window.puzzleManager;
     const inv = pm ? pm.inventory : {};
-    const sockets = pm ? pm.altarSockets : (palace ? { fire: palace.sockets.fire.placed, water: palace.sockets.water.placed, life: palace.sockets.life.placed } : {});
+    const sockets = pm ? pm.altarSockets : (this.palace ? {
+      fire: this.palace.sockets.fire.placed,
+      water: this.palace.sockets.water.placed,
+      life: this.palace.sockets.life.placed
+    } : {});
+
+    this.updateCrystalInventory(inv, sockets);
+
+    this.questSteps = document.querySelectorAll('.quest-step');
+    if (!this.questSteps || this.questSteps.length === 0) return;
+
+    this.questSteps.forEach(s => {
+      s.classList.remove('active');
+      s.classList.remove('completed');
+    });
 
     if (sockets.fire && sockets.water && sockets.life) {
       this.setObjective('✨ All 3 Crystals Restored! The Kingdom of Luminaria shines in eternal color!');
-      for (let i = 0; i <= 6; i++) this.completeQuestStep(i);
+      this.questSteps.forEach(s => s.classList.add('completed'));
     } else if (sockets.fire && sockets.water) {
+      for (let i = 0; i <= 4; i++) {
+        if (this.questSteps[i]) this.questSteps[i].classList.add('completed');
+      }
       if (inv.life) {
-        this.setObjective('🟢 Life Crystal Carried! Mount it into the North Socket of the Altar!');
-        for (let i = 0; i <= 5; i++) this.completeQuestStep(i);
+        this.setObjective('🟢 Life Crystal Carried! Mount it into the Altar to awaken the Kingdom!');
+        if (this.questSteps[5]) this.questSteps[5].classList.add('completed');
+        if (this.questSteps[6]) this.questSteps[6].classList.add('active');
       } else {
         this.setObjective('The Forest of Life Portal (🟢 North) is open! Journey to Chapter III to recover the Life Crystal.');
-        for (let i = 0; i <= 4; i++) this.completeQuestStep(i);
+        if (this.questSteps[5]) this.questSteps[5].classList.add('active');
       }
     } else if (sockets.fire) {
+      for (let i = 0; i <= 2; i++) {
+        if (this.questSteps[i]) this.questSteps[i].classList.add('completed');
+      }
       if (inv.water) {
-        this.setObjective('🔵 Water Crystal Carried! Mount it into the East Socket of the Altar!');
-        for (let i = 0; i <= 3; i++) this.completeQuestStep(i);
+        this.setObjective('🔵 Water Crystal Carried! Mount it into the Altar to restore Sapphire Waters!');
+        if (this.questSteps[3]) this.questSteps[3].classList.add('completed');
+        if (this.questSteps[4]) this.questSteps[4].classList.add('active');
       } else {
         this.setObjective('The Dried Lake Portal (🔵 East) is open! Journey to Chapter II to recover the Water Crystal.');
-        for (let i = 0; i <= 2; i++) this.completeQuestStep(i);
+        if (this.questSteps[3]) this.questSteps[3].classList.add('active');
       }
     } else {
       if (inv.red) {
-        this.setObjective('🔴 Fire Crystal Carried! Mount it into the West Socket of the Altar to awaken Crimson colors!');
-        this.completeQuestStep(0);
-        this.completeQuestStep(1);
+        this.setObjective('🔴 Fire Crystal Carried! Mount it into the Altar to awaken Crimson colors!');
+        if (this.questSteps[0]) this.questSteps[0].classList.add('completed');
+        if (this.questSteps[1]) this.questSteps[1].classList.add('completed');
+        if (this.questSteps[2]) this.questSteps[2].classList.add('active');
       } else {
         this.setObjective('Inspect the central Altar, then enter Chapter I Portal (🔴 West) to recover the Fire Crystal.');
+        if (this.questSteps[0]) this.questSteps[0].classList.add('active');
       }
     }
   }

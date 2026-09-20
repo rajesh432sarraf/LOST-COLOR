@@ -821,32 +821,75 @@ class PuzzleManager {
 
   handleAltarSocketInteract(item) {
     if (!this.palace) return;
-    const element = item.element; // 'fire', 'water', 'life'
 
-    if (this.altarSockets[element]) {
-      if (window.uiManager) {
-        window.uiManager.showNotification(`✨ This socket already holds the ${element.toUpperCase()} crystal.`);
+    let targetElement = item.element; // 'fire', 'water', 'life', or 'all'
+
+    // If 'all' (Master Altar) or already placed or uncarried element, adaptively choose next carried crystal:
+    if (targetElement === 'all' || !targetElement || this.altarSockets[targetElement]) {
+      if (!this.altarSockets.fire && this.inventory.red) {
+        targetElement = 'fire';
+      } else if (!this.altarSockets.water && this.inventory.water) {
+        targetElement = 'water';
+      } else if (!this.altarSockets.life && this.inventory.life) {
+        targetElement = 'life';
+      } else if (!this.altarSockets.fire) {
+        targetElement = 'fire';
+      } else if (!this.altarSockets.water) {
+        targetElement = 'water';
+      } else if (!this.altarSockets.life) {
+        targetElement = 'life';
+      }
+    } else {
+      // If player targeted a specific socket but lacks that crystal, but holds another unplaced crystal:
+      const hasSpecific = (targetElement === 'fire' && this.inventory.red) ||
+                          (targetElement === 'water' && this.inventory.water) ||
+                          (targetElement === 'life' && this.inventory.life);
+      if (!hasSpecific) {
+        if (!this.altarSockets.fire && this.inventory.red) targetElement = 'fire';
+        else if (!this.altarSockets.water && this.inventory.water) targetElement = 'water';
+        else if (!this.altarSockets.life && this.inventory.life) targetElement = 'life';
+      }
+    }
+
+    if (this.altarSockets[targetElement]) {
+      if (this.altarSockets.fire && this.altarSockets.water && this.altarSockets.life) {
+        if (window.uiManager) {
+          window.uiManager.showNotification('✨ The Altar of Elements shines in eternal color!');
+        }
+      } else {
+        if (window.uiManager) {
+          window.uiManager.showNotification(`✨ The ${targetElement.toUpperCase()} crystal is already mounted.`);
+        }
       }
       return;
     }
 
-    const hasCrystal = (element === 'fire' && this.inventory.red) ||
-                       (element === 'water' && this.inventory.water) ||
-                       (element === 'life' && this.inventory.life);
+    const hasCrystal = (targetElement === 'fire' && this.inventory.red) ||
+                       (targetElement === 'water' && this.inventory.water) ||
+                       (targetElement === 'life' && this.inventory.life);
 
     if (hasCrystal) {
       // Place into altar
-      if (element === 'fire') this.inventory.red = false;
-      if (element === 'water') this.inventory.water = false;
-      if (element === 'life') this.inventory.life = false;
-      this.altarSockets[element] = true;
-      item.isPlaced = true;
+      if (targetElement === 'fire') this.inventory.red = false;
+      if (targetElement === 'water') this.inventory.water = false;
+      if (targetElement === 'life') this.inventory.life = false;
+      this.altarSockets[targetElement] = true;
 
-      this.palace.socketCrystal(element);
+      // Mark individual socket as placed
+      const specificSocket = this.palace.interactables.find(i => i.id === `altar_${targetElement}`);
+      if (specificSocket) specificSocket.isPlaced = true;
+
+      // Only mark main altar as placed when ALL 3 crystals are mounted
+      if (this.altarSockets.fire && this.altarSockets.water && this.altarSockets.life) {
+        const mainAltar = this.palace.interactables.find(i => i.id === 'altar_main');
+        if (mainAltar) mainAltar.isPlaced = true;
+      }
+
+      this.palace.socketCrystal(targetElement);
 
       if (window.soundSystem) {
         window.soundSystem.playCrystalSocket();
-        window.soundSystem.playPalaceColorAwaken(element);
+        window.soundSystem.playPalaceColorAwaken(targetElement);
       }
 
       if (this.player) {
@@ -854,18 +897,15 @@ class PuzzleManager {
       }
 
       if (window.uiManager) {
-        window.uiManager.updateCrystalInventory(this.inventory, this.altarSockets);
-        if (element === 'fire') {
+        window.uiManager.updatePalaceQuestProgress();
+        if (targetElement === 'fire') {
           window.uiManager.showNotification('🔥 Fire Crystal Embedded! Crimson Life Restored to Palace!');
-          window.uiManager.setObjective('The Dried Lake Portal (🔵) is now active! Journey to Chapter II.');
           window.uiManager.showBanner('Palace Awakening: Crimson Color Restored!');
-        } else if (element === 'water') {
+        } else if (targetElement === 'water') {
           window.uiManager.showNotification('💧 Water Crystal Embedded! Sapphire Waters Restored to Palace!');
-          window.uiManager.setObjective('The Forest of Life Portal (🟢) is now active! Journey to Chapter III.');
           window.uiManager.showBanner('Palace Awakening: Azure Color Restored!');
-        } else if (element === 'life') {
+        } else if (targetElement === 'life') {
           window.uiManager.showNotification('🌿 Life Crystal Embedded! Nature & All Colors Awaken!');
-          window.uiManager.setObjective('All 3 Sacred Crystals Restored to the Altar! The Kingdom is Saved!');
           window.uiManager.showBanner('Grand Restoration: The Kingdom of Color is Saved!');
           setTimeout(() => {
             if (window.soundSystem) window.soundSystem.playGrandFinaleFanfare();
@@ -874,7 +914,7 @@ class PuzzleManager {
         }
       }
     } else {
-      const realmName = element === 'fire' ? 'Chapter I: Temple of Red' : element === 'water' ? 'Chapter II: The Dried Lake' : 'Chapter III: Forest of Life';
+      const realmName = targetElement === 'fire' ? 'Chapter I: Temple of Red' : targetElement === 'water' ? 'Chapter II: The Dried Lake' : 'Chapter III: Forest of Life';
       if (window.uiManager) {
         window.uiManager.showNotification(`⚠️ You must first journey to ${realmName} to recover this crystal.`);
       }

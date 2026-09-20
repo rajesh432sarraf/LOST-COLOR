@@ -426,8 +426,44 @@ class PalaceLevel {
     this.createSocket('water', 2.0, 1.25, 0.8, 0x00d2d3, '🔵 Water Crystal');
     this.createSocket('life', 0, 1.25, -1.8, 0x2ed573, '🟢 Life Crystal');
 
+    // 6. Master Altar Center Interactable (allows inserting crystals from anywhere around the altar)
+    this.interactables.push({
+      id: 'altar_main',
+      type: 'altar_socket',
+      element: 'all',
+      position: new THREE.Vector3(0, 1.2, 0),
+      interactionDistance: 7.8,
+      getPrompt: () => {
+        const pm = window.puzzleManager;
+        const inv = pm ? pm.inventory : {};
+        const sockets = pm ? pm.altarSockets : {
+          fire: this.sockets.fire.placed,
+          water: this.sockets.water.placed,
+          life: this.sockets.life.placed
+        };
+
+        if (sockets.fire && sockets.water && sockets.life) {
+          return '✨ Altar of Elements Restored & Glowing';
+        }
+        if (!sockets.fire) {
+          if (inv.red) return '[E] Mount Fire Crystal on Altar (Awaken Red!)';
+          return '🔒 Altar: Fire Crystal Missing (Chapter I: Temple)';
+        }
+        if (!sockets.water) {
+          if (inv.water) return '[E] Mount Water Crystal on Altar (Awaken Blue!)';
+          return '🔒 Altar: Water Crystal Missing (Chapter II: Lake)';
+        }
+        if (!sockets.life) {
+          if (inv.life) return '[E] Mount Life Crystal on Altar (Awaken All Colors!)';
+          return '🔒 Altar: Life Crystal Missing (Chapter III: Forest)';
+        }
+        return 'Altar of Elements';
+      }
+    });
+
     this.group.add(this.altarGroup);
-    this.colliders.push({ box: new THREE.Box3().setFromObject(tier1) });
+    // Central altar pedestal collider (allows stepping onto tier1 & tier2 stepped dais)
+    this.colliders.push({ box: new THREE.Box3().setFromObject(tier3) });
   }
 
   createSocket(element, x, y, z, colorHex, label) {
@@ -501,25 +537,37 @@ class PalaceLevel {
       colorHex: colorHex
     };
 
-    // Register Interactable for Player
+    // Register Interactable for Player with generous interaction distance
     this.interactables.push({
       id: `altar_${element}`,
       type: 'altar_socket',
       element: element,
       position: new THREE.Vector3(x, y + 0.5, z),
-      interactionDistance: 3.4,
+      interactionDistance: 5.5,
       getPrompt: () => {
+        const pm = window.puzzleManager;
+        const inv = pm ? pm.inventory : {};
+        const sockets = pm ? pm.altarSockets : this.sockets;
+
         if (this.sockets[element].placed) {
+          if (!sockets.fire && inv.red) return `[E] Mount 🔴 Fire Crystal on Altar (Awaken Red!)`;
+          if (!sockets.water && inv.water) return `[E] Mount 🔵 Water Crystal on Altar (Awaken Blue!)`;
+          if (!sockets.life && inv.life) return `[E] Mount 🟢 Life Crystal on Altar (Awaken All Colors!)`;
           return `✨ ${label} (Restored & Glowing)`;
         }
-        const hasIt = window.puzzleManager && (
-          (element === 'fire' && window.puzzleManager.inventory.red) ||
-          (element === 'water' && window.puzzleManager.inventory.water) ||
-          (element === 'life' && window.puzzleManager.inventory.life)
-        );
-        if (hasIt) {
+
+        const hasThis = (element === 'fire' && inv.red) ||
+                        (element === 'water' && inv.water) ||
+                        (element === 'life' && inv.life);
+        if (hasThis) {
           return `[E] Mount ${label} on Altar (Awaken Colors!)`;
         }
+
+        // If player holds another unplaced crystal:
+        if (!sockets.fire && inv.red) return `[E] Mount 🔴 Fire Crystal on Altar (Awaken Red!)`;
+        if (!sockets.water && inv.water) return `[E] Mount 🔵 Water Crystal on Altar (Awaken Blue!)`;
+        if (!sockets.life && inv.life) return `[E] Mount 🟢 Life Crystal on Altar (Awaken All Colors!)`;
+
         const realm = element === 'fire' ? 'Chapter I (🔴)' : element === 'water' ? 'Chapter II (🔵)' : 'Chapter III (🟢)';
         return `🔒 ${label} Socket (Recover from ${realm})`;
       }

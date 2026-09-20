@@ -320,6 +320,8 @@ body.cinematic-active .letterbox.bottom {
   transform: translateY(8px);
   transition: all 0.25s ease-out;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .interaction-prompt.visible {
