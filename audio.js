@@ -807,34 +807,62 @@ class SoundSystem {
     if (!this.ctx || this.isMuted) return;
     const now = this.ctx.currentTime;
 
-    // Deep sub-bass plunge (Color Thief descending)
+    // 1. Deep sub-bass plunge (Color Thief descending from heavens)
     const sub = this.ctx.createOscillator();
     const subGain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
 
     sub.type = 'sawtooth';
-    sub.frequency.setValueAtTime(140, now);
-    sub.frequency.exponentialRampToValueAtTime(28, now + 3.0);
+    sub.frequency.setValueAtTime(160, now);
+    sub.frequency.exponentialRampToValueAtTime(24, now + 3.2);
 
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(300, now);
-    filter.frequency.exponentialRampToValueAtTime(80, now + 3.0);
+    filter.frequency.setValueAtTime(360, now);
+    filter.frequency.exponentialRampToValueAtTime(60, now + 3.2);
 
     subGain.gain.setValueAtTime(0.01, now);
-    subGain.gain.linearRampToValueAtTime(0.55, now + 0.5);
-    subGain.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
+    subGain.gain.linearRampToValueAtTime(0.65, now + 0.6);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 4.5);
 
     sub.connect(filter);
     filter.connect(subGain);
     subGain.connect(this.sfxGain);
 
     sub.start(now);
-    sub.stop(now + 4.2);
+    sub.stop(now + 4.6);
 
-    // Muffle previous intro pad music
+    // 2. Howling Void Wind / Thunder Rumble
+    const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 3.5, this.ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 2.8));
+    }
+    const noiseSource = this.ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(180, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(700, now + 1.2);
+    noiseFilter.frequency.exponentialRampToValueAtTime(90, now + 3.5);
+    noiseFilter.Q.setValueAtTime(4.5, now);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.01, now);
+    noiseGain.gain.linearRampToValueAtTime(0.45, now + 0.8);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 3.6);
+
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.sfxGain);
+    noiseSource.start(now);
+
+    // 3. Muffle previous intro pad music to simulate color/life drain
     if (this.introOscs) {
       this.introOscs.forEach(o => {
-        o.gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+        try {
+          o.gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+        } catch (e) {}
       });
     }
   }
@@ -843,25 +871,37 @@ class SoundSystem {
     if (!this.ctx || this.isMuted) return;
     const now = this.ctx.currentTime;
 
-    // Melancholic emotional solo piano motif: A2 -> C3 -> E3 -> G3
-    const notes = [110, 130.81, 164.81, 196.00];
-    notes.forEach((freq, i) => {
-      const noteTime = now + i * 0.7;
+    // Resolute cinematic brass & cello motif: D2 -> F2 -> A2 -> D3 -> E3
+    const notes = [
+      { freq: 73.42, time: now, dur: 1.6 },       // D2 (Deep cello)
+      { freq: 110.00, time: now + 0.35, dur: 1.8 }, // A2
+      { freq: 146.83, time: now + 0.7, dur: 2.0 },  // D3
+      { freq: 174.61, time: now + 1.1, dur: 2.2 },  // F3
+      { freq: 220.00, time: now + 1.5, dur: 2.8 }   // A3 (Inspiring rise)
+    ];
+
+    notes.forEach((n) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, noteTime);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(n.freq, n.time);
 
-      gain.gain.setValueAtTime(0.001, noteTime);
-      gain.gain.linearRampToValueAtTime(0.22, noteTime + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 1.8);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(280, n.time);
+      filter.frequency.linearRampToValueAtTime(650, n.time + 0.5);
 
-      osc.connect(gain);
+      gain.gain.setValueAtTime(0.001, n.time);
+      gain.gain.linearRampToValueAtTime(0.24, n.time + 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, n.time + n.dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(this.musicGain);
 
-      osc.start(noteTime);
-      osc.stop(noteTime + 1.9);
+      osc.start(n.time);
+      osc.stop(n.time + n.dur + 0.1);
     });
   }
 
