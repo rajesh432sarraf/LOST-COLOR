@@ -342,6 +342,8 @@ class UIManager {
 
   showPrompt(text) {
     if (!this.promptEl || !this.promptText) return;
+    if (this._lastPromptText === text && this.promptEl.classList.contains('visible')) return;
+    this._lastPromptText = text;
     this.promptText.textContent = text;
     this.promptEl.classList.add('visible');
     if (this.reticleDot) this.reticleDot.classList.add('interactable');
@@ -349,6 +351,8 @@ class UIManager {
 
   hidePrompt() {
     if (!this.promptEl) return;
+    if (!this.promptEl.classList.contains('visible') && !this._lastPromptText) return;
+    this._lastPromptText = null;
     this.promptEl.classList.remove('visible');
     if (this.reticleDot) this.reticleDot.classList.remove('interactable');
   }
@@ -871,6 +875,14 @@ class UIManager {
   // ==========================================
   updateMiniMap() {
     if (!this.minimapCtx || !this.player) return;
+    // Skip completely during cinematic cutscenes
+    if (document.body.classList.contains('cinematic-active')) return;
+
+    // Throttle minimap redraws to ~22 FPS (every 45ms) to save CPU/GPU canvas texture upload bandwidth
+    const now = performance.now();
+    if (this._lastMinimapUpdate && now - this._lastMinimapUpdate < 45) return;
+    this._lastMinimapUpdate = now;
+
     const ctx = this.minimapCtx;
     const w = this.minimapCanvas.width;
     const h = this.minimapCanvas.height;

@@ -33,17 +33,20 @@ class GameManager {
     );
     this.camera.position.set(0, 3, 54);
 
-    // 3. Renderer with high visual fidelity
+    // 3. Renderer with high visual fidelity & solid 60 FPS performance
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Cap pixel ratio to 1.35 to eliminate high-DPI GPU fillrate strain while maintaining crisp visuals
+    this.pixelRatio = Math.min(window.devicePixelRatio || 1, 1.35);
+    this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.12;
+    this.perfDropCounter = 0;
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -547,8 +550,22 @@ class GameManager {
   animate() {
     requestAnimationFrame(this.animate);
 
-    const delta = Math.min(0.08, this.clock.getDelta());
+    const rawDelta = this.clock.getDelta();
+    const delta = Math.min(0.04, rawDelta);
     const time = this.clock.getElapsedTime();
+
+    // Adaptive Performance Monitor: smoothly optimize DPR if client GPU throttles
+    if (rawDelta > 0.032) {
+      this.perfDropCounter++;
+      if (this.perfDropCounter > 60 && this.pixelRatio > 1.0) {
+        this.pixelRatio = 1.0;
+        this.renderer.setPixelRatio(1.0);
+        if (this.postProcessing) this.postProcessing.resize(window.innerWidth, window.innerHeight);
+        this.perfDropCounter = 0;
+      }
+    } else {
+      this.perfDropCounter = Math.max(0, this.perfDropCounter - 1);
+    }
 
     // 1. Cinematic Intro or Player Locomotion
     if (this.intro && this.intro.active) {

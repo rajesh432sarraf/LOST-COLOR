@@ -167,8 +167,8 @@ class ForestLevel {
     this.sunLight = new THREE.DirectionalLight(0xfff6dd, 1.45);
     this.sunLight.position.set(38, 80, 28);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 2048;
-    this.sunLight.shadow.mapSize.height = 2048;
+    this.sunLight.shadow.mapSize.width = 1536;
+    this.sunLight.shadow.mapSize.height = 1536;
     this.sunLight.shadow.camera.near = 1;
     this.sunLight.shadow.camera.far = 260;
     const d = 80;

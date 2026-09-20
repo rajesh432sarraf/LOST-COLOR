@@ -74,8 +74,12 @@ class PlayerController {
     this.buildCharacterMesh();
     this.root.add(this.characterMesh);
 
-    // Camera pivot scratch vector
+    // Camera pivot & scratch vectors for zero-allocation per-frame camera updates
     this.cameraPivot = new THREE.Vector3();
+    this._scratchRayDir = new THREE.Vector3();
+    this._scratchRay = new THREE.Ray();
+    this._scratchHitPoint = new THREE.Vector3();
+    this._desiredCamPos = new THREE.Vector3();
 
     this.initEventListeners();
   }
@@ -983,9 +987,10 @@ class PlayerController {
       if (x * x + z * z > 74 * 74) return true;
     }
 
-    for (let obj of collisionObjects) {
-      if (!obj || !obj.box) continue;
-      if (obj.isOpen) continue;
+    const len = collisionObjects.length;
+    for (let i = 0; i < len; i++) {
+      const obj = collisionObjects[i];
+      if (!obj || !obj.box || obj.isOpen) continue;
 
       const b = obj.box;
 
@@ -1103,27 +1108,38 @@ class PlayerController {
 
     let actualDist = this.cameraDistance;
 
-    // Raycast from pivot to camera to prevent clipping through walls
-    const rayDir = new THREE.Vector3(
+    // Fast direction scratch vector
+    this._scratchRayDir.set(
       -sinYaw * cosPitch,
       sinPitch,
       -cosYaw * cosPitch
     ).normalize();
 
-    const ray = new THREE.Ray(this.cameraPivot, rayDir);
-    const hitPoint = new THREE.Vector3();
+    this._scratchRay.set(this.cameraPivot, this._scratchRayDir);
 
-    for (let obj of collisionObjects) {
+    const cLen = collisionObjects.length;
+    for (let i = 0; i < cLen; i++) {
+      const obj = collisionObjects[i];
       if (!obj || !obj.box || obj.isOpen) continue;
-      if (ray.intersectBox(obj.box, hitPoint)) {
-        const d = this.cameraPivot.distanceTo(hitPoint);
+      const b = obj.box;
+
+      // Fast broadphase distance pruning: skip if box is outside camera reach
+      if (
+        this.cameraPivot.x < b.min.x - actualDist || this.cameraPivot.x > b.max.x + actualDist ||
+        this.cameraPivot.z < b.min.z - actualDist || this.cameraPivot.z > b.max.z + actualDist
+      ) {
+        continue;
+      }
+
+      if (this._scratchRay.intersectBox(b, this._scratchHitPoint)) {
+        const d = this.cameraPivot.distanceTo(this._scratchHitPoint);
         if (d < actualDist) {
           actualDist = Math.max(1.3, d - 0.35);
         }
       }
     }
 
-    const desiredCamPos = new THREE.Vector3(
+    this._desiredCamPos.set(
       this.cameraPivot.x - sinYaw * cosPitch * actualDist,
       this.cameraPivot.y + sinPitch * actualDist,
       this.cameraPivot.z - cosYaw * cosPitch * actualDist
@@ -1132,13 +1148,13 @@ class PlayerController {
     // Apply trauma shake
     if (this.cameraTrauma > 0) {
       const shakePower = this.cameraTrauma * this.cameraTrauma;
-      desiredCamPos.x += (Math.random() - 0.5) * 0.35 * shakePower;
-      desiredCamPos.y += (Math.random() - 0.5) * 0.25 * shakePower;
-      desiredCamPos.z += (Math.random() - 0.5) * 0.35 * shakePower;
+      this._desiredCamPos.x += (Math.random() - 0.5) * 0.35 * shakePower;
+      this._desiredCamPos.y += (Math.random() - 0.5) * 0.25 * shakePower;
+      this._desiredCamPos.z += (Math.random() - 0.5) * 0.35 * shakePower;
       this.cameraTrauma = Math.max(0, this.cameraTrauma - this.traumaDecay * delta);
     }
 
-    this.camera.position.copy(desiredCamPos);
+    this.camera.position.copy(this._desiredCamPos);
     this.camera.lookAt(this.cameraPivot.x, this.cameraPivot.y + 0.1, this.cameraPivot.z);
   }
 }

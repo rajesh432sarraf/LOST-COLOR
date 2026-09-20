@@ -171,8 +171,8 @@ class LakeLevel {
     this.dirLight = new THREE.DirectionalLight(0xfff6e8, 1.45);
     this.dirLight.position.set(40, 85, 30);
     this.dirLight.castShadow = true;
-    this.dirLight.shadow.mapSize.width = 2048;
-    this.dirLight.shadow.mapSize.height = 2048;
+    this.dirLight.shadow.mapSize.width = 1536;
+    this.dirLight.shadow.mapSize.height = 1536;
     this.dirLight.shadow.camera.near = 1;
     this.dirLight.shadow.camera.far = 280;
     const d = 85;

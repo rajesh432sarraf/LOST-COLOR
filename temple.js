@@ -137,8 +137,8 @@ class TempleLevel {
     this.sunLight = new THREE.DirectionalLight(0xfff5e6, 1.65);
     this.sunLight.position.set(32, 50, 36);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 2048;
-    this.sunLight.shadow.mapSize.height = 2048;
+    this.sunLight.shadow.mapSize.width = 1536;
+    this.sunLight.shadow.mapSize.height = 1536;
     this.sunLight.shadow.camera.near = 1;
     this.sunLight.shadow.camera.far = 180;
     this.sunLight.shadow.camera.left = -45;
@@ -982,11 +982,9 @@ class TempleLevel {
     flameMesh2.rotation.y = Math.PI / 4;
     group.add(flameMesh2);
 
-    // Dynamic Flickering Fire PointLight
+    // Dynamic Flickering Fire PointLight (pure illumination without expensive cubemap shadow passes)
     const flameLight = new THREE.PointLight(0xff7722, 2.8, 18, 1.5);
     flameLight.position.set(0, 2.3, 0);
-    flameLight.castShadow = true;
-    flameLight.shadow.bias = -0.002;
     group.add(flameLight);
 
     // Rising Ember Sparks (Particles)

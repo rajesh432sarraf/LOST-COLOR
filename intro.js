@@ -29,6 +29,13 @@ class CinematicIntro {
     this.cameraTrauma = 0;
     this.cameraRoll = 0;
 
+    // Persistent scratch vectors for zero-allocation cinematic camera updates
+    this._scratchCamPos = new THREE.Vector3();
+    this._scratchLookTarget = new THREE.Vector3();
+    this._scratchV1 = new THREE.Vector3();
+    this._scratchV2 = new THREE.Vector3();
+    this._scratchLookB = new THREE.Vector3(0, 1.8, 20);
+
     // DOM References
     this.container = document.getElementById('intro-overlay');
     this.subtitleTitle = document.getElementById('intro-scene-title');
@@ -380,14 +387,14 @@ class CinematicIntro {
     const progress = Math.min(1.0, this.sceneTimer / current.duration);
     const ease = this.easeInOutCubic(progress);
 
-    let camPos = new THREE.Vector3();
-    let lookTarget = new THREE.Vector3();
+    let camPos = this._scratchCamPos;
+    let lookTarget = this._scratchLookTarget;
     let roll = 0;
 
     switch (current.curveType) {
       // Act I: Crane Swoop & Bank
       case 'crane_bank': {
-        camPos = this.bezierQuadratic(current.p0, current.p1, current.p2, ease);
+        camPos = this.bezierQuadratic(current.p0, current.p1, current.p2, ease, camPos);
         lookTarget.lerpVectors(current.look0, current.look1, ease);
         // Realistic camera banking (Dutch angle) during the arc turn
         roll = Math.sin(progress * Math.PI) * 0.045;
@@ -431,9 +438,10 @@ class CinematicIntro {
           1.45 + ease * 0.75,
           current.target.z + Math.cos(orbitAngle) * dist
         );
+        this._scratchV1.set(current.target.x, current.target.y + 0.12, current.target.z);
         lookTarget.lerpVectors(
-          new THREE.Vector3(current.target.x, current.target.y + 0.12, current.target.z),
-          new THREE.Vector3(0, 1.8, 20),
+          this._scratchV1,
+          this._scratchLookB,
           Math.max(0, (progress - 0.55) * 2.22)
         );
         roll = -Math.sin(progress * Math.PI) * 0.025;
@@ -507,9 +515,9 @@ class CinematicIntro {
   // ==========================================
   // Mathematics & Interpolation Helpers
   // ==========================================
-  bezierQuadratic(p0, p1, p2, t) {
+  bezierQuadratic(p0, p1, p2, t, out = this._scratchCamPos) {
     const inv = 1 - t;
-    return new THREE.Vector3(
+    return out.set(
       inv * inv * p0.x + 2 * inv * t * p1.x + t * t * p2.x,
       inv * inv * p0.y + 2 * inv * t * p1.y + t * t * p2.y,
       inv * inv * p0.z + 2 * inv * t * p1.z + t * t * p2.z
@@ -521,7 +529,7 @@ class CinematicIntro {
   }
 
   getHandheldSteadicamNoise(t) {
-    return new THREE.Vector3(0, 0, 0);
+    return this._scratchV2.set(0, 0, 0);
   }
 
   skip() {

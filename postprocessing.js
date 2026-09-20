@@ -91,104 +91,99 @@ class PostProcessingManager {
         }
 
         vec4 texColor = texture2D(tDiffuse, uv);
+        vec3 finalColor;
 
-        // Standard Luminance for Black & White Noir
-        float gray = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
+        // Fast-path: When world is in full rich color and no shockwave is active
+        if (uWorldSaturation >= 0.999 && uShockwaveRadius <= 0.01 && uBlueShockwaveRadius <= 0.01 && uGreenShockwaveRadius <= 0.01) {
+          finalColor = texColor.rgb;
+        } else {
+          // Standard Luminance for Black & White Noir
+          float gray = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
+          gray = pow(gray, uContrast);
+          vec3 monoColor = vec3(gray);
 
-        // Boost monochrome contrast
-        gray = pow(gray, uContrast);
+          // Base color mixes between full color scene and monochrome based on uWorldSaturation
+          finalColor = mix(monoColor, texColor.rgb, clamp(uWorldSaturation, 0.0, 1.0));
 
-        // 1. Red chrominance isolation (true saturated red, rejecting brown/tan/skin)
-        float maxGreenBlue = max(texColor.g, texColor.b);
-        float minGreenBlue = min(texColor.g, texColor.b);
-        float redDiff = texColor.r - maxGreenBlue;
-        float redSat = (texColor.r - minGreenBlue) / max(texColor.r, 0.001);
-        float isRed = smoothstep(0.28, 0.55, redDiff) * smoothstep(0.40, 0.72, redSat);
+          // Effective red restoration wave
+          float effectiveRedRestoration = uRedRestored;
+          if (uShockwaveRadius > 0.01 && uShockwaveRadius < 2.0) {
+            float distFromCenterR = length(uv - uShockwaveCenter);
+            effectiveRedRestoration = max(effectiveRedRestoration, smoothstep(uShockwaveRadius + 0.05, uShockwaveRadius - 0.05, distFromCenterR));
+          }
 
-        vec3 vibrantRed = mix(
-          texColor.rgb,
-          vec3(min(1.0, texColor.r * 1.3 + 0.05), texColor.g * 0.35, texColor.b * 0.35),
-          0.45
-        );
+          // Apply Red Restoration if active
+          if (effectiveRedRestoration > 0.001) {
+            float maxGreenBlue = max(texColor.g, texColor.b);
+            float minGreenBlue = min(texColor.g, texColor.b);
+            float redDiff = texColor.r - maxGreenBlue;
+            float redSat = (texColor.r - minGreenBlue) / max(texColor.r, 0.001);
+            float isRed = smoothstep(0.28, 0.55, redDiff) * smoothstep(0.40, 0.72, redSat);
 
-        // 2. Blue & Cyan chrominance isolation
-        float maxRedGreen = max(texColor.r, texColor.g);
-        float minRedGreen = min(texColor.r, texColor.g);
-        float blueDiff = texColor.b - maxRedGreen;
-        float blueSat = (texColor.b - minRedGreen) / max(texColor.b, 0.001);
-        float isBlue = smoothstep(0.20, 0.45, blueDiff) * smoothstep(0.30, 0.65, blueSat);
+            vec3 vibrantRed = mix(
+              texColor.rgb,
+              vec3(min(1.0, texColor.r * 1.3 + 0.05), texColor.g * 0.35, texColor.b * 0.35),
+              0.45
+            );
+            vec3 redAccent = mix(texColor.rgb, vibrantRed, 0.4);
+            finalColor = mix(finalColor, redAccent, isRed * effectiveRedRestoration);
+          }
 
-        vec3 vibrantBlue = mix(
-          texColor.rgb,
-          vec3(texColor.r * 0.35, min(1.0, texColor.g * 0.95 + 0.05), min(1.0, texColor.b * 1.35 + 0.1)),
-          0.45
-        );
+          // Effective blue restoration wave
+          float effectiveBlueRestoration = uBlueRestored;
+          if (uBlueShockwaveRadius > 0.01 && uBlueShockwaveRadius < 2.0) {
+            float distFromCenterB = length(uv - uBlueShockwaveCenter);
+            effectiveBlueRestoration = max(effectiveBlueRestoration, smoothstep(uBlueShockwaveRadius + 0.05, uBlueShockwaveRadius - 0.05, distFromCenterB));
+          }
 
-        // Emissive magical particles allowance (subtle luminescence near shrine even in monochrome)
-        float isMagicalSparkle = smoothstep(0.7, 1.0, texColor.b) * step(0.25, blueDiff);
+          // Apply Blue Restoration if active
+          if (effectiveBlueRestoration > 0.001) {
+            float maxRedGreen = max(texColor.r, texColor.g);
+            float minRedGreen = min(texColor.r, texColor.g);
+            float blueDiff = texColor.b - maxRedGreen;
+            float blueSat = (texColor.b - minRedGreen) / max(texColor.b, 0.001);
+            float isBlue = smoothstep(0.20, 0.45, blueDiff) * smoothstep(0.30, 0.65, blueSat);
 
-        // Standard monochrome color
-        vec3 monoColor = vec3(gray);
+            vec3 vibrantBlue = mix(
+              texColor.rgb,
+              vec3(texColor.r * 0.35, min(1.0, texColor.g * 0.95 + 0.05), min(1.0, texColor.b * 1.35 + 0.1)),
+              0.45
+            );
+            vec3 blueAccent = mix(texColor.rgb, vibrantBlue, 0.4);
+            finalColor = mix(finalColor, blueAccent, isBlue * effectiveBlueRestoration);
+          }
 
-        // Effective red restoration wave
-        vec2 centerDiffR = uv - uShockwaveCenter;
-        float distFromCenterR = length(centerDiffR);
-        float waveMaskR = smoothstep(uShockwaveRadius + 0.05, uShockwaveRadius - 0.05, distFromCenterR);
-        float effectiveRedRestoration = max(uRedRestored, waveMaskR);
+          // Effective green restoration wave
+          float effectiveGreenRestoration = uGreenRestored;
+          if (uGreenShockwaveRadius > 0.01 && uGreenShockwaveRadius < 2.0) {
+            float distFromCenterG = length(uv - uGreenShockwaveCenter);
+            effectiveGreenRestoration = max(effectiveGreenRestoration, smoothstep(uGreenShockwaveRadius + 0.05, uGreenShockwaveRadius - 0.05, distFromCenterG));
+          }
 
-        // Effective blue restoration wave
-        vec2 centerDiffB = uv - uBlueShockwaveCenter;
-        float distFromCenterB = length(centerDiffB);
-        float waveMaskB = smoothstep(uBlueShockwaveRadius + 0.05, uBlueShockwaveRadius - 0.05, distFromCenterB);
-        float effectiveBlueRestoration = max(uBlueRestored, waveMaskB);
+          // Apply Green Restoration if active
+          if (effectiveGreenRestoration > 0.001) {
+            float maxRedBlue = max(texColor.r, texColor.b);
+            float minRedBlue = min(texColor.r, texColor.b);
+            float greenDiff = texColor.g - maxRedBlue;
+            float greenSat = (texColor.g - minRedBlue) / max(texColor.g, 0.001);
+            float isGreen = smoothstep(0.18, 0.42, greenDiff) * smoothstep(0.28, 0.58, greenSat);
 
-        // Base color mixes between full color scene and monochrome based on uWorldSaturation
-        vec3 baseColor = mix(monoColor, texColor.rgb, clamp(uWorldSaturation, 0.0, 1.0));
-        vec3 finalColor = baseColor;
-
-        // Apply subtle magical particle luminescence in B&W
-        finalColor = mix(finalColor, vibrantBlue, isMagicalSparkle * 0.75);
-
-        // Apply Red Restoration
-        if (effectiveRedRestoration > 0.0) {
-          vec3 redAccent = mix(texColor.rgb, vibrantRed, 0.4);
-          finalColor = mix(finalColor, redAccent, isRed * effectiveRedRestoration);
-        }
-
-        // Apply Blue Restoration
-        if (effectiveBlueRestoration > 0.0) {
-          vec3 blueAccent = mix(texColor.rgb, vibrantBlue, 0.4);
-          finalColor = mix(finalColor, blueAccent, isBlue * effectiveBlueRestoration);
-        }
-
-        // Effective green restoration wave
-        vec2 centerDiffG = uv - uGreenShockwaveCenter;
-        float distFromCenterG = length(centerDiffG);
-        float waveMaskG = smoothstep(uGreenShockwaveRadius + 0.05, uGreenShockwaveRadius - 0.05, distFromCenterG);
-        float effectiveGreenRestoration = max(uGreenRestored, waveMaskG);
-
-        // Apply Green Restoration
-        if (effectiveGreenRestoration > 0.0) {
-          float maxRedBlue = max(texColor.r, texColor.b);
-          float minRedBlue = min(texColor.r, texColor.b);
-          float greenDiff = texColor.g - maxRedBlue;
-          float greenSat = (texColor.g - minRedBlue) / max(texColor.g, 0.001);
-          float isGreen = smoothstep(0.18, 0.42, greenDiff) * smoothstep(0.28, 0.58, greenSat);
-          vec3 vibrantGreen = mix(
-            texColor.rgb,
-            vec3(texColor.r * 0.3, min(1.0, texColor.g * 1.35 + 0.08), texColor.b * 0.3),
-            0.45
-          );
-          vec3 greenAccent = mix(texColor.rgb, vibrantGreen, 0.4);
-          finalColor = mix(finalColor, greenAccent, isGreen * effectiveGreenRestoration);
+            vec3 vibrantGreen = mix(
+              texColor.rgb,
+              vec3(texColor.r * 0.3, min(1.0, texColor.g * 1.35 + 0.08), texColor.b * 0.3),
+              0.45
+            );
+            vec3 greenAccent = mix(texColor.rgb, vibrantGreen, 0.4);
+            finalColor = mix(finalColor, greenAccent, isGreen * effectiveGreenRestoration);
+          }
         }
 
         // Soft cinematic vignette
         float vignette = 1.0 - dot(vUv - 0.5, vUv - 0.5) * uVignette * 1.8;
         finalColor *= clamp(vignette, 0.0, 1.0);
 
-        // Subtle film grain
-        float noise = (fract(sin(dot(vUv, vec2(12.9898, 78.233) * uTime)) * 43758.5453) - 0.5) * 0.025;
+        // Subtle film grain (overflow-safe fast hash)
+        float noise = (fract(sin(dot(vUv + fract(uTime * 0.05), vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.02;
         finalColor += vec3(noise);
 
         gl_FragColor = vec4(finalColor, 1.0);

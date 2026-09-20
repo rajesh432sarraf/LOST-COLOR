@@ -40,6 +40,14 @@ class PuzzleManager {
     this.redRestorationProgress = 0.0;
     this.victoryShown = false;
 
+    // Cached positions for zero-allocation interaction proximity checks
+    this._palaceReturnPos = new THREE.Vector3(0, 0, 49);
+    this._palaceReturnInteractable = {
+      type: 'palace_return',
+      position: this._palaceReturnPos,
+      getPrompt: () => 'Press [E] to Return to Royal Palace Hub 🏛️'
+    };
+
     // Level 2 Clues & Connection State
     this.discoveredClues = {
       cloud: false,
@@ -252,13 +260,10 @@ class PuzzleManager {
 
     // Level 1 Courtyard South Portal back to Royal Palace Hub
     if (this.currentLevel === 1 && !closestInteractable) {
-      const returnGateDist = playerPos.distanceTo(new THREE.Vector3(0, 0, 49));
-      if (returnGateDist <= 6.5) {
-        closestInteractable = {
-          type: 'palace_return',
-          position: new THREE.Vector3(0, 0, 49),
-          getPrompt: () => 'Press [E] to Return to Royal Palace Hub 🏛️'
-        };
+      const dx = playerPos.x - this._palaceReturnPos.x;
+      const dz = playerPos.z - this._palaceReturnPos.z;
+      if (dx * dx + dz * dz <= 42.25) { // 6.5 * 6.5
+        closestInteractable = this._palaceReturnInteractable;
       }
     }
 
